@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Dasbor Performa Konten Iklan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --paper:#F7F6F2;
+    --ink:#17181A;
+    --ink-soft:#5A5C61;
+    --line:#DEDBD2;
+    --blue:#2451E0;
+    --blue-soft:#E9EDFC;
+    --coral:#E0562D;
+    --coral-soft:#FCE9E2;
+    --green:#1E8A5C;
+    --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Sora',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num, input[type=number], .metric-val, .stat-num, table td.num-cell{
+    font-family:'IBM Plex Mono',monospace;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ===== HEADER ===== */
+  header{
+    padding:36px 40px 28px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+  header h1{
+    font-size:28px;
+    font-weight:800;
+    margin:0 0 6px;
+    letter-spacing:-0.02em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:14.5px;
+    max-width:520px;
+    line-height:1.5;
+  }
+  .header-actions{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+  }
+  .period-field label{
+    margin:0 0 6px;
+  }
+  .period-field input{
+    width:190px;
+  }
+  .input-with-btn{
+    display:flex;
+    gap:6px;
+  }
+  .input-with-btn input{width:190px;}
+  .mini-save-btn{
+    padding:0 12px;
+    font-size:12.5px;
+    font-weight:600;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:#fff;
+    white-space:nowrap;
+  }
+  .mini-save-btn:hover{opacity:.85;}
+  button{
+    font-family:'Sora',sans-serif;
+    cursor:pointer;
+    border-radius:3px;
+  }
+  .btn{
+    padding:11px 18px;
+    font-size:14px;
+    font-weight:600;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:#fff;
+    transition:opacity .15s;
+  }
+  .btn:hover{opacity:.85;}
+  .btn.secondary{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .btn.secondary:hover{border-color:var(--ink);}
+
+  /* ===== LAYOUT ===== */
+  main{padding:32px 40px 60px;}
+
+  .stats-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin-bottom:32px;
+  }
+  .stat{
+    background:var(--card);
+    padding:20px 22px;
+  }
+  .stat-label{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+  }
+  .stat-num{
+    font-size:26px;
+    font-weight:600;
+  }
+  .stat-num.blue{color:var(--blue);}
+  .stat-num.coral{color:var(--coral);}
+
+  .grid-2{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:32px;
+    align-items:start;
+  }
+  @media (max-width:900px){
+    .grid-2{grid-template-columns:1fr;}
+  }
+
+  /* ===== FORM ===== */
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    padding:24px;
+  }
+  .panel h2{
+    font-size:15px;
+    font-weight:700;
+    margin:0 0 18px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .type-toggle{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .type-btn{
+    flex:1;
+    padding:12px 8px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--ink-soft);
+  }
+  .type-btn[data-active="true"][data-type="image"]{
+    border-color:var(--blue);
+    background:var(--blue-soft);
+    color:var(--blue);
+  }
+  .type-btn[data-active="true"][data-type="video"]{
+    border-color:var(--coral);
+    background:var(--coral-soft);
+    color:var(--coral);
+  }
+  label{
+    display:block;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:14px 0 6px;
+  }
+  label.first{margin-top:0;}
+  input, select, textarea{
+    width:100%;
+    padding:10px 11px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-size:14px;
+    color:var(--ink);
+    font-family:'Sora',sans-serif;
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:56px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .calc-preview{
+    margin-top:16px;
+    padding:12px 14px;
+    background:var(--paper);
+    border:1px dashed var(--line);
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .calc-preview b{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--ink);
+    font-size:15px;
+  }
+  .submit-btn{
+    width:100%;
+    margin-top:18px;
+    padding:13px;
+  }
+  .upload-box{
+    border:1px dashed var(--line);
+    background:var(--paper);
+    padding:14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .upload-browse{
+    color:var(--blue);
+    font-weight:600;
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .upload-thumb{
+    width:52px;
+    height:52px;
+    object-fit:cover;
+    background:#fff;
+    border:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .upload-placeholder{
+    width:52px;
+    height:52px;
+    background:#fff;
+    border:1px solid var(--line);
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--ink-soft);
+    font-size:18px;
+  }
+  .upload-text{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    line-height:1.4;
+  }
+  .upload-text b{color:var(--ink);font-weight:600;display:block;font-size:13px;margin-bottom:2px;}
+  .rate-input-wrap{
+    position:relative;
+  }
+  .rate-input-wrap input{padding-right:34px;}
+  .rate-suffix{
+    position:absolute;
+    right:11px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--ink-soft);
+    font-size:14px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .thumb-cell img{
+    width:44px;
+    height:44px;
+    object-fit:cover;
+    border:1px solid var(--line);
+  }
+  .thumb-cell .no-thumb{
+    width:44px;
+    height:44px;
+    border:1px solid var(--line);
+    background:var(--paper);
+  }
+  .video-link{
+    display:inline-block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--coral);
+    text-decoration:none;
+    white-space:nowrap;
+    border:1px solid var(--coral);
+    padding:5px 8px;
+    background:var(--coral-soft);
+  }
+  .video-link:hover{opacity:.8;}
+  .thumb-cell img{cursor:zoom-in;}
+  .lightbox-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(23,24,26,0.88);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    cursor:zoom-out;
+  }
+  .lightbox-overlay.open{display:flex;}
+  .lightbox-overlay img{
+    max-width:90vw;
+    max-height:85vh;
+    object-fit:contain;
+    border:2px solid #fff;
+    background:#fff;
+  }
+  .lightbox-close{
+    position:absolute;
+    top:24px;
+    right:32px;
+    color:#fff;
+    font-size:28px;
+    font-family:'Sora',sans-serif;
+    cursor:pointer;
+    line-height:1;
+  }
+  .mini-link{
+    color:var(--blue);
+    text-decoration:underline;
+    font-weight:600;
+    margin-left:4px;
+  }
+
+  /* ===== GAS MODAL ===== */
+  .gas-modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(23,24,26,0.72);
+    z-index:1100;
+    align-items:center;
+    justify-content:center;
+    padding:30px;
+  }
+  .gas-modal-overlay.open{display:flex;}
+  .gas-modal{
+    background:#fff;
+    max-width:640px;
+    width:100%;
+    max-height:85vh;
+    overflow-y:auto;
+    border:1px solid var(--line);
+    padding:28px 30px;
+    position:relative;
+  }
+  .gas-modal h3{
+    font-size:18px;
+    margin:0 0 4px;
+  }
+  .gas-modal .gas-sub{
+    color:var(--ink-soft);
+    font-size:13.5px;
+    margin:0 0 18px;
+  }
+  .gas-modal ol{
+    padding-left:20px;
+    font-size:13.5px;
+    line-height:1.7;
+    margin:0 0 18px;
+  }
+  .gas-modal ol li{margin-bottom:4px;}
+  .gas-close{
+    position:absolute;
+    top:18px;
+    right:20px;
+    font-size:22px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    line-height:1;
+  }
+  .gas-close:hover{color:var(--ink);}
+  .code-block{
+    position:relative;
+    background:#17181A;
+    padding:16px 16px 16px;
+    overflow-x:auto;
+  }
+  .code-block pre{
+    margin:0;
+    color:#EDEDEA;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    line-height:1.6;
+    white-space:pre;
+  }
+  .copy-btn{
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#2C2D30;
+    color:#fff;
+    border:none;
+    padding:6px 10px;
+    font-size:11.5px;
+    font-family:'Sora',sans-serif;
+    cursor:pointer;
+  }
+  .copy-btn:hover{background:#3a3b3f;}
+  .modal-section-title{
+    font-size:12.5px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    color:var(--ink-soft);
+    margin:22px 0 8px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+  }
+  .gas-modal .field{margin-bottom:14px;}
+  .gas-modal .field label{
+    display:block;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  .gas-modal .field input{
+    width:100%;
+    padding:10px 11px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-size:13.5px;
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--ink);
+  }
+  .gas-modal .field input:focus{outline:none;border-color:var(--ink);}
+  .form-actions{display:flex;gap:8px;}
+  .form-actions .btn{flex:1;padding:10px;font-size:13px;}
+  .msg-line{
+    font-size:12.5px;
+    margin-top:10px;
+    min-height:16px;
+    line-height:1.5;
+  }
+  .code-box{
+    background:#17181A;
+    color:#EDEDEA;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    line-height:1.6;
+    padding:14px 16px;
+    overflow-x:auto;
+    white-space:pre;
+    margin:0;
+    max-height:260px;
+    overflow-y:auto;
+  }
+  .sync-note{
+    font-size:12px;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .gear-btn{
+    padding:11px 14px;
+    font-size:14px;
+  }
+  .header-sync{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:6px;
+  }
+  .header-sync-row{display:flex;gap:8px;}
+
+  /* ===== FILTER TABS ===== */
+  .tabs{
+    display:flex;
+    gap:2px;
+    margin-bottom:16px;
+    border-bottom:1px solid var(--line);
+  }
+  .tab{
+    padding:10px 16px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    background:transparent;
+    border:none;
+    border-bottom:2px solid transparent;
+    margin-bottom:-1px;
+  }
+  .tab[data-active="true"]{
+    color:var(--ink);
+    border-bottom:2px solid var(--ink);
+  }
+  .tab-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-left:4px;
+  }
+
+  /* ===== TABLE ===== */
+  .table-wrap{
+    background:var(--card);
+    border:1px solid var(--line);
+    overflow-x:auto;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:760px;
+  }
+  thead th{
+    text-align:left;
+    font-size:11.5px;
+    text-transform:none;
+    color:var(--ink-soft);
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+    font-weight:600;
+  }
+  tbody td{
+    padding:13px 14px;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  .tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:3px 9px;
+    font-size:12px;
+    font-weight:600;
+    border-radius:2px;
+  }
+  .tag.image{background:var(--blue-soft);color:var(--blue);}
+  .tag.video{background:var(--coral-soft);color:var(--coral);}
+  .title-cell{font-weight:600;max-width:200px;}
+  .sub-cell{color:var(--ink-soft);font-size:12px;margin-top:2px;}
+  .metric-val{font-weight:700;font-size:14.5px;}
+  .metric-val.blue{color:var(--blue);}
+  .metric-val.coral{color:var(--coral);}
+  .del-btn{
+    border:none;
+    background:transparent;
+    color:var(--ink-soft);
+    font-size:12.5px;
+    text-decoration:underline;
+    padding:0;
+  }
+  .del-btn:hover{color:var(--coral);}
+  .empty-state{
+    padding:60px 20px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+  .note-cell{max-width:180px;color:var(--ink-soft);font-size:12.5px;}
+
+  /* ===== PRINT / PDF ===== */
+  #pdf-header{display:none;}
+  @media print{
+    header, .grid-2 > div:first-child, .tabs, .del-btn, .header-actions{display:none !important;}
+    #pdf-header{
+      display:block;
+      padding:0 0 18px;
+      margin-bottom:20px;
+      border-bottom:2px solid var(--ink);
+    }
+    #pdf-header h1{font-size:20px;margin:0 0 4px;}
+    #pdf-header p{margin:0;color:#555;font-size:12px;}
+    body{background:#fff;}
+    main{padding:0 10px;}
+    .stats-row{margin-bottom:20px;}
+    .grid-2{grid-template-columns:1fr;}
+    .table-wrap{border:1px solid #999;}
+    table{min-width:0;}
+    thead th, tbody td{padding:8px 10px;font-size:11px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Dasbor Performa Konten Iklan</h1>
+    <p>Catat CTR untuk konten gambar dan Hook Rate untuk konten video, lalu kirim ringkasannya ke tim kreatif sebagai PDF.</p>
+  </div>
+  <div class="header-actions">
+    <div class="period-field">
+      <label>Periode laporan</label>
+      <input id="f-period" type="text" placeholder="mis. 1 - 7 Sep 2026" oninput="savePeriod()">
+    </div>
+    <div class="header-sync">
+      <div class="sync-note" id="syncNote">Belum tersambung ke Google Sheet</div>
+      <div class="header-sync-row">
+        <button class="btn secondary gear-btn" onclick="openGasModal()" title="Pengaturan &amp; Integrasi Google Sheet">⚙️ Sinkron Sheet</button>
+        <button class="btn secondary" onclick="exportExcel()">Ekspor ke Excel</button>
+        <button class="btn secondary" onclick="exportPDF()">Ekspor ke PDF</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="pdf-header">
+    <h1>Laporan Performa Konten Iklan</h1>
+    <p id="pdf-date">Periode: –</p>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-label">Total Konten</div>
+      <div class="stat-num" id="stat-total">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Rata-rata CTR (Gambar)</div>
+      <div class="stat-num blue" id="stat-ctr">–</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Rata-rata Hook Rate (Video)</div>
+      <div class="stat-num coral" id="stat-hook">–</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Konten Gambar / Video</div>
+      <div class="stat-num" id="stat-split">0 / 0</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Tambah Konten Baru</h2>
+
+      <div class="type-toggle">
+        <button class="type-btn" data-type="image" data-active="true" onclick="setType('image')">Gambar (CTR)</button>
+        <button class="type-btn" data-type="video" data-active="false" onclick="setType('video')">Video (Hook Rate)</button>
+      </div>
+
+      <label class="first">Nama konten</label>
+      <input id="f-title" type="text" placeholder="mis. Promo_Ramadan_v2">
+
+      <label>Platform</label>
+      <select id="f-platform">
+        <option>Meta Ads</option>
+        <option>TikTok Ads</option>
+        <option>Google Ads</option>
+        <option>Shopee Ads</option>
+        <option>Lainnya</option>
+      </select>
+
+      <div id="image-upload-section">
+        <label>Link gambar konten</label>
+        <input id="f-image-link" type="url" placeholder="mis. https://drive.google.com/... atau link gambar lainnya" oninput="updateImageLinkPreview()">
+        <div class="upload-box" id="upload-box" style="cursor:default;">
+          <img id="upload-thumb" class="upload-thumb" style="display:none;">
+          <div class="upload-placeholder" id="upload-placeholder">🖼️</div>
+          <div class="upload-text">
+            <b id="upload-filename">Belum ada link gambar</b>
+            Tempel link gambar di kolom atas untuk melihat preview di sini
+          </div>
+        </div>
+      </div>
+
+      <div id="video-link-section" style="display:none;">
+        <label>Upload video</label>
+        <input id="f-video-file" type="file" accept="video/*" onchange="handleVideoUpload(event)">
+        <div class="upload-box" id="video-upload-box">
+          <img id="video-thumb" class="upload-thumb" style="display:none;">
+          <div class="upload-placeholder" id="video-upload-placeholder">＋</div>
+          <div class="upload-text">
+            <b id="video-upload-filename">Belum ada video</b>
+            <span id="video-upload-status">Cuplikan video otomatis diambil sebagai thumbnail (hanya tampil lokal, tidak ikut ke spreadsheet) — </span>
+            <a href="#" class="upload-browse" onclick="document.getElementById('f-video-file').click(); return false;">pilih file video</a>
+          </div>
+        </div>
+
+        <label>Link video (opsional)</label>
+        <input id="f-link" type="url" placeholder="mis. https://drive.google.com/... atau link TikTok/Meta">
+      </div>
+
+      <label id="f-rate-label">CTR (%)</label>
+      <div class="rate-input-wrap">
+        <input id="f-rate" type="number" min="0" step="0.01" placeholder="mis. 1.85">
+        <span class="rate-suffix">%</span>
+      </div>
+
+      <label>Catatan untuk tim kreatif</label>
+      <textarea id="f-notes" placeholder="mis. Hook 3 detik pertama lemah, coba ganti opening shot"></textarea>
+
+      <button class="btn submit-btn" onclick="addEntry()">Simpan Konten</button>
+    </div>
+
+    <div>
+      <div class="tabs">
+        <button class="tab" data-active="true" data-filter="all" onclick="setFilter('all')">Semua <span class="tab-count" id="count-all">0</span></button>
+        <button class="tab" data-active="false" data-filter="image" onclick="setFilter('image')">Gambar <span class="tab-count" id="count-image">0</span></button>
+        <button class="tab" data-active="false" data-filter="video" onclick="setFilter('video')">Video <span class="tab-count" id="count-video">0</span></button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Tipe</th>
+              <th>Konten</th>
+              <th>Platform</th>
+              <th>CTR / Hook Rate</th>
+              <th>Catatan</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state">Belum ada konten yang dicatat. Tambahkan konten pertama di panel kiri.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="lightbox-overlay" id="lightbox-overlay" onclick="closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+  <img id="lightbox-img" src="" alt="Pratinjau gambar">
+</div>
+
+<div class="gas-modal-overlay" id="gas-modal-overlay">
+  <div class="gas-modal">
+    <span class="gas-close" onclick="closeGasModal()">✕</span>
+    <h3>⚙️ Pengaturan &amp; Integrasi Google Sheet</h3>
+    <p class="gas-sub">Tempel URL Web App Apps Script dari Google Sheet kamu supaya konten tersinkron dua arah — tersimpan di sheet dan bisa ditarik lagi di perangkat lain.</p>
+
+    <div class="field">
+      <label>URL Web App Apps Script</label>
+      <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/XXXX/exec">
+    </div>
+    <div class="form-actions">
+      <button class="btn secondary" id="btnTestConn" type="button">Test Koneksi</button>
+      <button class="btn" id="btnPullNow" type="button">Tarik Data Sekarang</button>
+    </div>
+    <div class="msg-line" id="settingsMsg"></div>
+
+    <div class="modal-section-title">📄 Kode Backend (Code.gs)</div>
+    <p class="gas-sub" style="margin-bottom:0;">Belum punya Web App? Buat/buka Google Sheet → <b>Extensions → Apps Script</b> → hapus kode default → tempel kode di bawah → <b>Deploy → New deployment</b> → tipe <b>Web app</b> (Execute as: <b>Me</b>, Who has access: <b>Anyone</b>) → Deploy → salin URL yang diakhiri <code>/exec</code> ke kolom di atas. Sheet "Konten Iklan" akan dibuat otomatis. Untuk konten gambar, link yang kamu isi di kolom "Link gambar konten" dikirim apa adanya sebagai teks ke kolom "Thumbnail" di sheet — bukan file yang diunggah — jadi ikut tersinkron dan bisa ditarik balik di perangkat lain manapun.</p>
+    <div class="code-block" style="margin-top:10px;">
+      <button class="copy-btn" onclick="copyGasCode()" id="copy-btn">Salin kode</button>
+      <pre class="code-box" id="gas-code"></pre>
+    </div>
+
+    <div class="modal-section-title">💾 Data Lokal</div>
+    <div class="gas-sub" id="localDataInfo" style="margin-bottom:10px;">0 konten tersimpan di perangkat ini.</div>
+    <button class="btn secondary" id="btnClearLocal" type="button" style="width:100%;">Hapus Data Lokal</button>
+  </div>
+</div>
+
+<script>
+/* ============ KODE APPS SCRIPT (Code.gs) ============ */
+const CODE_GS = `// ============================================================
+// APPS SCRIPT — DASBOR PERFORMA KONTEN IKLAN
+// Paste di Google Apps Script (Extensions -> Apps Script dari spreadsheet
+// kamu) -> Deploy -> New deployment -> Web app
+//   Execute as    : Me
+//   Who has access: Anyone
+// Salin URL hasil deploy ke kolom "URL Web App Apps Script" di dasbor.
+// Sheet "Konten Iklan" akan dibuat otomatis di spreadsheet yang sama.
+// Kolom "Thumbnail" cuma menyimpan link gambar (teks biasa) yang diisi
+// pengguna di dasbor — tidak ada file yang diunggah ke Drive maupun
+// gambar yang ditempel ke sel.
+// ============================================================
+
+var SHEET_NAME = 'Konten Iklan';
+var HEADERS = ['ID','Tipe','Nama Konten','Platform','CTR / Hook Rate (%)','Link Video','Catatan','Thumbnail'];
+
+function getSheet_(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh){
+    sh = ss.insertSheet(SHEET_NAME);
+    sh.appendRow(HEADERS);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function doGet(e){
+  var sh = getSheet_();
+  return jsonOutput({ entries: sheetToObjects_(sh) });
+}
+
+function doPost(e){
+  var data = JSON.parse(e.postData.contents);
+  var lock = LockService.getScriptLock();
+  try{
+    lock.waitLock(30000);
+  } catch(lockErr){
+    return jsonOutput({ status:'error', message:'Server sibuk, coba lagi.' });
+  }
+  try{
+    var sh = getSheet_();
+    if (data.op === 'upsert') upsertEntry_(sh, data);
+    else if (data.op === 'delete') deleteEntry_(sh, data);
+  } finally {
+    lock.releaseLock();
+  }
+  return jsonOutput({ status:'ok' });
+}
+
+function jsonOutput(obj){
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function sheetToObjects_(sheet){
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length < 2) return [];
+  var headers = rows[0].map(function(h){ return String(h).trim().toLowerCase(); });
+  var keyMap = { 'id':'id', 'tipe':'type', 'nama konten':'nama', 'platform':'platform', 'ctr / hook rate (%)':'rate', 'link video':'link', 'catatan':'catatan', 'thumbnail':'thumbnailUrl' };
+  var out = [];
+  for (var i = 1; i < rows.length; i++){
+    var row = rows[i];
+    var isEmpty = row.every(function(c){ return c === '' || c === null; });
+    if (isEmpty) continue;
+    var obj = {};
+    headers.forEach(function(h, idx){
+      var key = keyMap[h] || h;
+      obj[key] = row[idx];
+    });
+    out.push(obj);
+  }
+  return out;
+}
+
+// Upsert berdasarkan ID (baris baru kalau ID belum ada, update kalau sudah ada)
+function upsertEntry_(sh, data){
+  var rows = sh.getDataRange().getValues();
+  var id = String(data.id).trim();
+  var rowValues = [data.id, data.type, data.nama, data.platform, data.rate, data.link || '', data.catatan || '', data.thumbnail || ''];
+  for (var i = 1; i < rows.length; i++){
+    if (String(rows[i][0]).trim() === id){
+      sh.getRange(i + 1, 1, 1, HEADERS.length).setValues([rowValues]);
+      return;
+    }
+  }
+  sh.appendRow(rowValues);
+}
+
+function deleteEntry_(sh, data){
+  var rows = sh.getDataRange().getValues();
+  var id = String(data.id).trim();
+  for (var i = 1; i < rows.length; i++){
+    if (String(rows[i][0]).trim() === id){
+      sh.deleteRow(i + 1);
+      return;
+    }
+  }
+}`;
+
+let entries = [];
+let currentType = 'image';
+let currentFilter = 'all';
+const STORAGE_KEY = 'ads-content-entries';
+const MAX_THUMB_SIZE = 480;
+
+function loadEntries(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    entries = [];
+  }
+  render();
+}
+
+function saveEntries(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }catch(e){
+    console.error('Gagal menyimpan data', e);
+  }
+}
+
+function setType(type){
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b=>{
+    b.setAttribute('data-active', b.dataset.type === type ? 'true' : 'false');
+  });
+  document.getElementById('f-rate-label').textContent = type === 'image' ? 'CTR (%)' : 'Hook Rate (%)';
+  document.getElementById('f-rate').placeholder = type === 'image' ? 'mis. 1.85' : 'mis. 32.40';
+  document.getElementById('image-upload-section').style.display = type === 'image' ? 'block' : 'none';
+  document.getElementById('video-link-section').style.display = type === 'video' ? 'block' : 'none';
+}
+
+function updateImageLinkPreview(){
+  const url = document.getElementById('f-image-link').value.trim();
+  const thumbEl = document.getElementById('upload-thumb');
+  const placeholderEl = document.getElementById('upload-placeholder');
+  const filenameEl = document.getElementById('upload-filename');
+  if(!url){
+    thumbEl.style.display = 'none';
+    placeholderEl.style.display = 'flex';
+    filenameEl.textContent = 'Belum ada link gambar';
+    return;
+  }
+  thumbEl.onerror = function(){
+    thumbEl.style.display = 'none';
+    placeholderEl.style.display = 'flex';
+    filenameEl.textContent = 'Link tidak bisa dimuat sebagai gambar (pastikan link publik/dapat diakses)';
+  };
+  thumbEl.onload = function(){
+    thumbEl.style.display = 'block';
+    placeholderEl.style.display = 'none';
+    filenameEl.textContent = 'Preview gambar';
+  };
+  thumbEl.src = url;
+}
+
+let pendingVideoThumb = null;
+
+function handleVideoUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  document.getElementById('video-upload-filename').textContent = 'Memproses ' + file.name + '...';
+
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+  const objectUrl = URL.createObjectURL(file);
+  video.src = objectUrl;
+
+  video.addEventListener('loadedmetadata', function(){
+    video.currentTime = Math.min(1, video.duration / 2);
+  });
+
+  video.addEventListener('seeked', function(){
+    const canvas = document.createElement('canvas');
+    let w = video.videoWidth, h = video.videoHeight;
+    if(w > h){
+      if(w > MAX_THUMB_SIZE){ h = h * (MAX_THUMB_SIZE / w); w = MAX_THUMB_SIZE; }
+    } else {
+      if(h > MAX_THUMB_SIZE){ w = w * (MAX_THUMB_SIZE / h); h = MAX_THUMB_SIZE; }
+    }
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+    pendingVideoThumb = canvas.toDataURL('image/jpeg', 0.7);
+
+    document.getElementById('video-thumb').src = pendingVideoThumb;
+    document.getElementById('video-thumb').style.display = 'block';
+    document.getElementById('video-upload-placeholder').style.display = 'none';
+    document.getElementById('video-upload-filename').textContent = file.name;
+
+    URL.revokeObjectURL(objectUrl);
+  });
+
+  video.addEventListener('error', function(){
+    alert('Gagal membaca file video ini. Coba format lain (mp4/mov), atau isi link video saja.');
+    document.getElementById('video-upload-filename').textContent = 'Belum ada video';
+  });
+
+  video.load();
+}
+
+function resetVideoUploadBox(){
+  pendingVideoThumb = null;
+  document.getElementById('f-video-file').value = '';
+  document.getElementById('video-thumb').style.display = 'none';
+  document.getElementById('video-upload-placeholder').style.display = 'flex';
+  document.getElementById('video-upload-filename').textContent = 'Belum ada video';
+}
+
+function resetUploadBox(){
+  document.getElementById('f-image-link').value = '';
+  document.getElementById('upload-thumb').style.display = 'none';
+  document.getElementById('upload-placeholder').style.display = 'flex';
+  document.getElementById('upload-filename').textContent = 'Belum ada link gambar';
+}
+
+function setFilter(f){
+  currentFilter = f;
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.setAttribute('data-active', t.dataset.filter === f ? 'true' : 'false');
+  });
+  render();
+}
+
+async function addEntry(){
+  const title = document.getElementById('f-title').value.trim();
+  const platform = document.getElementById('f-platform').value;
+  const rate = parseFloat(document.getElementById('f-rate').value);
+  const notes = document.getElementById('f-notes').value.trim();
+  const link = document.getElementById('f-link').value.trim();
+  const imageLink = document.getElementById('f-image-link').value.trim();
+
+  if(!title){
+    alert('Isi dulu nama kontennya ya.');
+    return;
+  }
+  if(isNaN(rate) || rate < 0){
+    alert((currentType === 'image' ? 'CTR' : 'Hook Rate') + ' belum diisi.');
+    return;
+  }
+  if(currentType === 'image' && !imageLink){
+    alert('Isi dulu link gambarnya ya.');
+    return;
+  }
+
+  const newEntry = {
+    id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7),
+    type: currentType,
+    title, platform,
+    rate,
+    thumbnail: currentType === 'image' ? imageLink : pendingVideoThumb,
+    link: currentType === 'video' ? (link || null) : null,
+    notes
+  };
+  entries.unshift(newEntry);
+  lastLocalEditAt = Date.now();
+
+  await saveEntries();
+
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-rate').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-link').value = '';
+  resetUploadBox();
+  resetVideoUploadBox();
+
+  render();
+
+  if(getAppsScriptUrl()){
+    pushToSheet(Object.assign({op:'upsert'}, entryToRow(newEntry))).then(res=>{
+      if(res === 'error'){
+        const note = document.getElementById('syncNote');
+        note.textContent = '⚠️ Gagal sinkron, tersimpan lokal saja';
+      }
+    });
+  }
+}
+
+async function deleteEntry(id){
+  entries = entries.filter(e => e.id !== id);
+  lastLocalEditAt = Date.now();
+  await saveEntries();
+  render();
+
+  if(getAppsScriptUrl()){
+    pushToSheet({op:'delete', id}).then(res=>{
+      if(res === 'error'){
+        const note = document.getElementById('syncNote');
+        note.textContent = '⚠️ Gagal sinkron hapus ke Sheet';
+      }
+    });
+  }
+}
+
+/* ============ SINKRONISASI GOOGLE SHEETS (dua arah, seperti dasbor To Do) ============ */
+const GAS_URL_KEY = 'ads-appscript-url';
+let lastSyncError = '';
+let lastLocalEditAt = 0;
+let pendingPushes = 0;
+
+function getAppsScriptUrl(){ return document.getElementById('gasUrl').value.trim(); }
+
+function saveAppsScriptUrl(){
+  try{ localStorage.setItem(GAS_URL_KEY, getAppsScriptUrl()); }catch(e){}
+}
+function loadAppsScriptUrl(){
+  try{
+    const val = localStorage.getItem(GAS_URL_KEY);
+    if(val) document.getElementById('gasUrl').value = val;
+  }catch(e){}
+}
+
+function entryToRow(e){
+  return {
+    id: e.id,
+    type: e.type === 'image' ? 'Gambar' : 'Video',
+    nama: e.title,
+    platform: e.platform,
+    rate: Number(e.rate.toFixed(2)),
+    link: e.link || '',
+    catatan: e.notes || '',
+    // Untuk gambar: link yang diisi pengguna. Untuk video: thumbnail lokal
+    // (base64 hasil cuplikan) tidak dikirim, karena "Link Video" sudah cukup.
+    thumbnail: (e.type === 'image' && e.thumbnail) ? e.thumbnail : ''
+  };
+}
+
+// Tarik data terbaru dari Google Sheet. Thumbnail tidak ada di sheet (terlalu besar),
+// jadi thumbnail lokal yang sudah ada dipertahankan berdasarkan ID saat menggabungkan.
+async function pullFromSheet(silent){
+  const url = getAppsScriptUrl();
+  const note = document.getElementById('syncNote');
+  lastSyncError = '';
+  if(!url){ note.textContent = 'Belum tersambung ke Google Sheet'; return 'no-url'; }
+  if(!silent) note.textContent = '🔄 Menarik data...';
+  const requestStartedAt = Date.now();
+  try{
+    const controller = new AbortController();
+    const timer = setTimeout(()=> controller.abort(), 20000);
+    const res = await fetch(url + '?action=read', { cache:'no-store', signal: controller.signal });
+    clearTimeout(timer);
+
+    if(!res.ok){
+      lastSyncError = 'Server merespons HTTP ' + res.status + '. Cek apakah URL benar dan deployment masih aktif.';
+      if(!silent) note.textContent = '❌ Gagal tersambung (HTTP ' + res.status + ').';
+      return 'error';
+    }
+
+    const raw = await res.text();
+    let json;
+    try{
+      json = JSON.parse(raw);
+    }catch(parseErr){
+      const isLoginPage = /accounts\.google\.com|ServiceLogin|<html/i.test(raw);
+      lastSyncError = isLoginPage
+        ? 'Respons yang diterima adalah halaman login Google, bukan data JSON. Di Deploy > Manage deployments, pastikan "Who has access" diatur ke "Anyone", lalu buat versi deployment baru.'
+        : 'Respons dari server bukan JSON yang valid. Kemungkinan URL yang ditempel bukan URL web app yang benar (harus diakhiri /exec).';
+      if(!silent) note.textContent = '❌ Gagal tersambung ke Sheet.';
+      return 'error';
+    }
+
+    if(json && json.status === 'error'){
+      lastSyncError = json.message || 'Server Apps Script mengembalikan status error.';
+      if(!silent) note.textContent = '❌ Gagal tersambung ke Sheet.';
+      return 'error';
+    }
+
+    // Kalau ada perubahan lokal SELAMA proses tarik data ini berjalan, jangan
+    // timpa data lokal yang lebih baru dengan data lama dari server.
+    if(lastLocalEditAt > requestStartedAt){
+      if(!silent) note.textContent = 'Sinkron dilewati (ada perubahan baru di perangkat ini)';
+      return 'stale';
+    }
+
+    const localVideoThumbs = {};
+    entries.forEach(e => { if(e.type === 'video' && e.thumbnail) localVideoThumbs[e.id] = e.thumbnail; });
+
+    entries = (json.entries || []).map(r => {
+      const id = String(r.id || '').trim();
+      const type = (String(r.type || '').trim().toLowerCase() === 'video') ? 'video' : 'image';
+      const remoteThumb = String(r.thumbnailUrl || '').trim();
+      return {
+        id,
+        type,
+        title: String(r.nama || '').trim(),
+        platform: String(r.platform || '').trim() || 'Lainnya',
+        rate: Number(r.rate) || 0,
+        thumbnail: type === 'image' ? (remoteThumb || null) : (localVideoThumbs[id] || null),
+        link: String(r.link || '').trim() || null,
+        notes: String(r.catatan || '').trim()
+      };
+    }).filter(e => e.id && e.title);
+
+    await saveEntries();
+    const now = new Date();
+    note.textContent = '🔄 Tersinkron ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+    return 'ok';
+  }catch(err){
+    lastSyncError = err.name === 'AbortError'
+      ? 'Waktu tunggu habis (20 detik) tanpa respons. Coba lagi — Apps Script kadang lambat saat pertama kali diakses.'
+      : 'Gagal melakukan koneksi (' + err.message + '). Kemungkinan penyebab: URL salah/terpotong, deployment belum "Anyone", atau belum membuat deployment baru setelah edit script.';
+    if(!silent) note.textContent = '❌ Gagal tersambung ke Sheet.';
+    return 'error';
+  }
+}
+
+// Kirim satu perubahan (tambah/ubah/hapus) ke sheet, di-upsert berdasarkan ID.
+async function pushToSheet(payload){
+  const url = getAppsScriptUrl();
+  if(!url) return 'no-url';
+  pendingPushes++;
+  try{
+    const controller = new AbortController();
+    const timer = setTimeout(()=> controller.abort(), 15000);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    const body = await res.json().catch(()=>null);
+    if(body && body.status === 'error') return 'error';
+    const note = document.getElementById('syncNote');
+    const now = new Date();
+    note.textContent = '🔄 Tersinkron ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+    return 'ok';
+  }catch(err){
+    return 'error';
+  }finally{
+    pendingPushes = Math.max(0, pendingPushes - 1);
+  }
+}
+
+function startAutoSync(){
+  setInterval(()=>{
+    if(!getAppsScriptUrl()) return;
+    if(pendingPushes > 0) return;
+    if(Date.now() - lastLocalEditAt < 4000) return;
+    pullFromSheet(true).then(()=> render());
+  }, 12000);
+}
+
+const PERIOD_KEY = 'ads-report-period';
+function savePeriod(){
+  try{
+    localStorage.setItem(PERIOD_KEY, document.getElementById('f-period').value);
+  }catch(e){}
+}
+function loadPeriod(){
+  try{
+    const val = localStorage.getItem(PERIOD_KEY);
+    if(val) document.getElementById('f-period').value = val;
+  }catch(e){}
+}
+
+function render(){
+  const filtered = currentFilter === 'all' ? entries : entries.filter(e => e.type === currentFilter);
+
+  document.getElementById('count-all').textContent = entries.length;
+  document.getElementById('count-image').textContent = entries.filter(e=>e.type==='image').length;
+  document.getElementById('count-video').textContent = entries.filter(e=>e.type==='video').length;
+
+  document.getElementById('stat-total').textContent = entries.length;
+  const imgs = entries.filter(e=>e.type==='image');
+  const vids = entries.filter(e=>e.type==='video');
+  document.getElementById('stat-split').textContent = imgs.length + ' / ' + vids.length;
+  document.getElementById('stat-ctr').textContent = imgs.length ? (imgs.reduce((s,e)=>s+e.rate,0)/imgs.length).toFixed(2) + '%' : '–';
+  document.getElementById('stat-hook').textContent = vids.length ? (vids.reduce((s,e)=>s+e.rate,0)/vids.length).toFixed(2) + '%' : '–';
+
+  const tbody = document.getElementById('table-body');
+  const emptyState = document.getElementById('empty-state');
+  tbody.innerHTML = '';
+
+  if(filtered.length === 0){
+    emptyState.style.display = 'block';
+    document.querySelector('.table-wrap table').style.display = 'none';
+    return;
+  }
+  emptyState.style.display = 'none';
+  document.querySelector('.table-wrap table').style.display = 'table';
+
+  filtered.forEach(e => {
+    const tr = document.createElement('tr');
+    const isImage = e.type === 'image';
+    let thumbHtml;
+    if(e.thumbnail){
+      thumbHtml = `<img src="${e.thumbnail}" alt="${escapeHtml(e.title)}" onclick="openLightbox('${e.thumbnail}')">`;
+    } else if(!isImage && e.link){
+      thumbHtml = `<a class="video-link" href="${escapeHtml(e.link)}" target="_blank" rel="noopener">Tonton ↗</a>`;
+    } else {
+      thumbHtml = `<div class="no-thumb"></div>`;
+    }
+    const linkLine = (!isImage && e.link && e.thumbnail)
+      ? `<div class="sub-cell"><a class="video-link" href="${escapeHtml(e.link)}" target="_blank" rel="noopener">Tonton ↗</a></div>`
+      : '';
+    tr.innerHTML = `
+      <td class="thumb-cell">${thumbHtml}</td>
+      <td><span class="tag ${e.type}">${isImage ? 'Gambar' : 'Video'}</span></td>
+      <td class="title-cell">${escapeHtml(e.title)}${linkLine}</td>
+      <td>${escapeHtml(e.platform)}</td>
+      <td><span class="metric-val ${isImage?'blue':'coral'}">${e.rate.toFixed(2)}%</span></td>
+      <td class="note-cell">${escapeHtml(e.notes) || '–'}</td>
+      <td><button class="del-btn" onclick="deleteEntry('${e.id}')">Hapus</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openLightbox(src){
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-overlay').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightbox-overlay').classList.remove('open');
+}
+function openGasModal(){
+  document.getElementById('localDataInfo').textContent = entries.length + ' konten tersimpan di perangkat ini.';
+  document.getElementById('settingsMsg').textContent = '';
+  document.getElementById('gas-modal-overlay').classList.add('open');
+}
+function closeGasModal(){
+  document.getElementById('gas-modal-overlay').classList.remove('open');
+}
+function copyGasCode(){
+  const code = document.getElementById('gas-code').textContent;
+  navigator.clipboard.writeText(code).then(function(){
+    const btn = document.getElementById('copy-btn');
+    const original = btn.textContent;
+    btn.textContent = 'Tersalin!';
+    setTimeout(function(){ btn.textContent = original; }, 1800);
+  }).catch(function(){
+    alert('Gagal menyalin otomatis. Silakan blok dan salin kode secara manual.');
+  });
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ closeLightbox(); closeGasModal(); }
+});
+function escapeHtml(str){
+  if(!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function exportExcel(){
+  if(entries.length === 0){
+    alert('Belum ada data untuk diekspor.');
+    return;
+  }
+  const period = document.getElementById('f-period').value.trim();
+  const rows = entries.map(e => ({
+    'Tipe': e.type === 'image' ? 'Gambar' : 'Video',
+    'Nama Konten': e.title,
+    'Platform': e.platform,
+    'CTR / Hook Rate (%)': Number(e.rate.toFixed(2)),
+    'Link Video': e.link || '',
+    'Catatan': e.notes || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:28},{wch:14},{wch:18},{wch:32},{wch:36}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Performa Konten');
+  const filename = 'laporan-konten-iklan' + (period ? '-' + period.replace(/[^a-z0-9]+/gi,'-') : '') + '.xlsx';
+  XLSX.writeFile(wb, filename);
+}
+
+function exportPDF(){
+  const period = document.getElementById('f-period').value.trim();
+  document.getElementById('pdf-date').textContent = 'Periode: ' + (period || '–');
+  window.print();
+}
+
+document.getElementById('gas-code').textContent = CODE_GS;
+
+document.getElementById('gasUrl').addEventListener('change', ()=> saveAppsScriptUrl());
+
+document.getElementById('btnTestConn').onclick = async ()=>{
+  const url = getAppsScriptUrl();
+  const msg = document.getElementById('settingsMsg');
+  if(!url){ msg.textContent = '❌ URL belum diisi.'; msg.style.color = '#E0562D'; return; }
+  msg.textContent = '🔄 Menguji koneksi...'; msg.style.color = '#5A5C61';
+  await saveAppsScriptUrl();
+  const res = await pullFromSheet(true);
+  if(res === 'ok'){ msg.textContent = '✅ Koneksi berhasil — data berhasil ditarik dari sheet "Konten Iklan".'; msg.style.color = '#1E8A5C'; }
+  else{ msg.textContent = '❌ ' + (lastSyncError || 'Gagal terhubung. Pastikan URL benar dan akses "Anyone".'); msg.style.color = '#E0562D'; }
+  render();
+};
+
+document.getElementById('btnPullNow').onclick = async ()=>{
+  await saveAppsScriptUrl();
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = '🔄 Menarik data...'; msg.style.color = '#5A5C61';
+  const res = await pullFromSheet(true);
+  msg.textContent = res === 'ok' ? '✅ Data terbaru berhasil ditarik.' : '❌ ' + (lastSyncError || 'Gagal mengambil data.');
+  msg.style.color = res === 'ok' ? '#1E8A5C' : '#E0562D';
+  render();
+};
+
+document.getElementById('btnClearLocal').onclick = async ()=>{
+  if(!confirm('Yakin hapus semua data lokal di perangkat ini? (data di Google Sheets tidak ikut terhapus)')) return;
+  entries = [];
+  await saveEntries();
+  render();
+  document.getElementById('localDataInfo').textContent = '0 konten tersimpan di perangkat ini.';
+};
+
+loadAppsScriptUrl();
+if(getAppsScriptUrl()) pullFromSheet(true).then(()=> render());
+loadPeriod();
+loadEntries();
+startAutoSync();
+</script>
+
+</body>
+</html>
