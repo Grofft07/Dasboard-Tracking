@@ -97,7 +97,8 @@ table.lead th:nth-child(6),table.lead td:nth-child(6){width:80px;overflow:hidden
 table.lead th:nth-child(7),table.lead td:nth-child(7){width:140px}
 table.lead th:nth-child(8),table.lead td:nth-child(8){width:104px}
 table.lead th:nth-child(9),table.lead td:nth-child(9){width:150px}
-table.lead th:nth-child(10),table.lead td:nth-child(10){width:150px}
+table.lead th:nth-child(10),table.lead td:nth-child(10){width:140px}
+table.lead th:nth-child(11),table.lead td:nth-child(11){width:150px}
 @media (max-width:900px){ table.lead{table-layout:auto} table.lead th,table.lead td{width:auto} }
 
 dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:0;width:min(560px,94vw);box-shadow:0 20px 50px rgba(0,0,0,.25)}
@@ -318,6 +319,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
     </label>
     <button id="btnWA" class="btn">Laporan WA</button>
     <button id="btnTheme" class="btn icon" aria-label="Ganti tema">◐</button>
+    <button id="btnPic" class="btn">Kelola PIC</button>
     <button id="btnSetup" class="btn">Pengaturan</button>
     <button id="btnAdd" class="btn">+ Tambah manual</button>
   </div>
@@ -325,6 +327,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
 
 <nav class="tabs" role="tablist" aria-label="Tampilan">
   <button class="tab" role="tab" id="tabAudit" data-tab="audit" aria-selected="true">Audit Lead</button>
+  <button class="tab" role="tab" id="tabRC" data-tab="rc" aria-selected="false">Closing Lead <span class="cnt" id="rcCount" hidden>0</span></button>
   <button class="tab" role="tab" id="tabDC" data-tab="dc" aria-selected="false">Follow-up Lead <span class="cnt" id="dcCount" hidden>0</span></button>
 </nav>
 
@@ -364,7 +367,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <div class="head"><h2>Daftar lead</h2><span class="muted" id="detNote"></span></div>
   <div class="tw"><table class="lead">
     <thead><tr>
-      <th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS</th><th>Sumber</th><th>Indikasi</th><th>Verifikasi</th><th>Status</th><th></th>
+      <th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS</th><th>Sumber</th><th>Indikasi</th><th>Verifikasi</th><th>Status</th><th>Closing</th><th></th>
     </tr></thead>
     <tbody id="tbody"></tbody>
   </table></div>
@@ -375,7 +378,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
 <div id="viewDC" hidden>
   <section class="filters" aria-label="Filter Follow-up Lead">
     <div class="field"><label>Periode</label><div class="dp" id="dpDc"></div></div>
-    <div class="field"><label for="dcCs">CS</label><select id="dcCs"><option value="">Semua CS</option></select></div>
+    <div class="field"><label for="dcCs">CS DL</label><select id="dcCs"><option value="">Semua CS DL</option></select></div>
     <div class="field"><label for="dcSt">Status penanganan</label><select id="dcSt"></select></div>
     <div class="field grow"><label for="dcQ">Cari</label><input type="search" id="dcQ" placeholder="Nama, HP, alamat"></div>
   </section>
@@ -384,10 +387,27 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <section class="kpis" id="dcKpis" aria-label="Ringkasan Follow-up Lead"></section>
   <section class="card panel">
     <div class="head"><h2>Daftar Follow-up</h2><span class="muted" id="dcNote"></span></div>
-    <p class="hint" style="margin:-6px 0 10px">Berisi otomatis semua lead berstatus Tidak real. Lead yang berhasil closing tetap di sini dengan status Closing (pilih filter Closing atau Semua status untuk melihatnya). Hanya lead di tab ini yang disimpan ke Google Sheet; tab Audit Lead tersimpan di browser ini saja. Kalau statusnya diubah lagi di tab Audit Lead, lead keluar dari sini dan dihapus dari Sheet. Periode di atas hanya memengaruhi ringkasan periode dan Laporan WA; daftar tetap menampilkan semua lead.</p>
+    <p class="hint" style="margin:-6px 0 10px">Berisi otomatis semua lead berstatus Tidak real. Lead yang berhasil closing tetap di sini dengan status Closing (pilih filter Closing atau Semua status untuk melihatnya). Lead di tab ini disimpan ke Google Sheet; tab Audit Lead (kecuali lead Real, lihat tab Closing Lead — kecuali yang ditandai closing langsung di Audit Lead) tersimpan di browser ini saja. Kalau statusnya diubah lagi di tab Audit Lead, lead keluar dari sini dan dihapus dari Sheet. Periode di atas hanya memengaruhi ringkasan periode dan Laporan WA; daftar tetap menampilkan semua lead.</p>
     <div class="tw"><table class="dc">
-      <thead><tr><th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS</th><th>Follow-up</th><th>Penanganan</th><th></th></tr></thead>
+      <thead><tr><th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS DL</th><th>Follow-up</th><th>Penanganan</th><th></th></tr></thead>
       <tbody id="dcBody"></tbody>
+    </table></div>
+  </section>
+</div>
+
+<div id="viewRC" hidden>
+  <section class="filters" aria-label="Filter Closing Lead">
+    <div class="field"><label for="rcCs">CS DL</label><select id="rcCs"><option value="">Semua CS DL</option></select></div>
+    <div class="field"><label for="rcSt">Status</label><select id="rcSt"></select></div>
+    <div class="field grow"><label for="rcQ">Cari</label><input type="search" id="rcQ" placeholder="Nama, HP, alamat"></div>
+  </section>
+  <section class="kpis" id="rcKpis" aria-label="Ringkasan Closing Lead"></section>
+  <section class="card panel">
+    <div class="head"><h2>Daftar lead Real</h2><span class="muted" id="rcNote"></span></div>
+    <p class="hint" style="margin:-6px 0 10px">Berisi otomatis lead berstatus "Real, belum closing" (dari semua tanggal audit) milik alur CS DL — baik yang belum maupun yang sudah closing, histori closing tetap tersimpan di sini tanpa perlu pindah tab. Lead yang ditandai "Real, sudah closing" langsung di tab Audit Lead (milik CS biasa) tidak masuk ke sini. Lead di tab ini disimpan ke Google Sheet supaya bisa dibuka dari browser/HP lain, termasuk setelah closing.</p>
+    <div class="tw"><table class="dc">
+      <thead><tr><th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS DL</th><th>Status closing</th><th></th></tr></thead>
+      <tbody id="rcBody"></tbody>
     </table></div>
   </section>
 </div>
@@ -436,6 +456,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
     <input type="hidden" id="d_id">
     <div class="info" id="d_info"></div>
     <div class="grid2" style="margin-top:12px">
+      <div class="field"><label for="d_pic">CS DL</label><input id="d_pic" list="picListDc" autocomplete="off" placeholder="Nama CS DL"><datalist id="picListDc"></datalist></div>
       <div class="field"><label for="d_fu">Tanggal follow-up</label><input type="date" id="d_fu"></div>
       <div class="field"><label for="d_st">Status penanganan</label><select id="d_st"></select></div>
       <div class="span2" id="d_nomWrap" hidden style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -470,10 +491,10 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <div class="dlg">
     <h3>Pengaturan</h3>
     <div class="field span2"><label for="s_url">URL Web App Google Apps Script (/exec)</label><input id="s_url" placeholder="https://script.google.com/macros/s/.../exec"></div>
-    <p class="hint">Hubungkan ke Google Sheet supaya lead Tidak real dari hasil audit bisa dibuka dan dikelola petugas Follow-up dari browser lain.</p>
+    <p class="hint">Hubungkan ke Google Sheet supaya lead Tidak real dan lead Real milik alur CS DL (termasuk yang sudah closing) bisa dibuka dan dikelola dari browser lain. Lead yang closing langsung di tab Audit Lead (CS biasa) cukup tersimpan lokal.</p>
     <div class="field span2" style="margin-top:12px"><label for="s_role">Peran di browser ini</label>
       <select id="s_role"><option value="audit">Auditor (upload CSV &amp; audit lead)</option><option value="dc">Petugas Follow-up (kelola lead Tidak real)</option></select></div>
-    <p class="hint">Auditor mengirim lead Tidak real ke Sheet. Petugas Follow-up hanya melihat dan mengelola lead itu, jadi tidak perlu upload CSV.</p>
+    <p class="hint">Auditor mengirim lead Tidak real dan lead Real milik alur CS DL (termasuk yang sudah closing) ke Sheet. Petugas Follow-up hanya melihat dan mengelola lead Tidak real, jadi tidak perlu upload CSV.</p>
     <div class="dfoot" style="margin-top:10px"><button class="btn" id="sTest">Simpan &amp; sinkron</button></div>
     <div class="hr"></div>
     <strong>Sambungkan ke Google Sheet</strong>
@@ -491,28 +512,105 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   </div>
 </dialog>
 
+<!-- kelola closing lead real -->
+<dialog id="dlgRC">
+  <form class="dlg" id="formRC" method="dialog">
+    <h3>Kelola closing lead</h3>
+    <input type="hidden" id="rc_id">
+    <div class="info" id="rc_info"></div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="field"><label for="rc_pic">CS DL</label><input id="rc_pic" list="picListRc" autocomplete="off" placeholder="Nama CS DL"><datalist id="picListRc"></datalist></div>
+      <div class="field"><label for="rc_st">Status closing</label><select id="rc_st"></select></div>
+      <div class="span2" id="rc_nomWrap" hidden style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label for="rc_nom">Nominal closing (Rp)</label><input type="number" id="rc_nom" min="0" step="1" inputmode="numeric" placeholder="Mis: 250000"></div>
+        <div class="field"><label for="rc_cdate">Tanggal closing</label><input type="date" id="rc_cdate"></div>
+      </div>
+      <div class="field span2"><label for="rc_cat">Catatan</label><textarea id="rc_cat" rows="3" placeholder="Mis: sudah transfer DP, tunggu pelunasan"></textarea></div>
+    </div>
+    <div class="dfoot">
+      <button type="button" class="btn" id="rcCancel">Batal</button>
+      <button type="submit" class="btn primary">Simpan</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- kelola pic -->
+<dialog id="dlgPic" class="wide">
+  <div class="dlg">
+    <h3>Kelola PIC</h3>
+    <p class="hint">Ganti nama di sini otomatis mengubah nama itu di semua lead yang memakainya (Audit Lead, Follow-up Lead, dan Closing Lead).</p>
+    <div id="picList" style="display:flex;flex-direction:column;gap:10px;margin-top:12px"></div>
+    <div class="dfoot" style="margin-top:14px">
+      <button type="button" class="btn" id="picClose">Tutup</button>
+      <button type="button" class="btn primary" id="picSave">Simpan perubahan</button>
+    </div>
+  </div>
+</dialog>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script type="text/plain" id="codegs">
-const SHEET = 'AuditLeadLog';
-const HEAD = ['orderId','tanggal','jam','nama','hp','alamat','cs','sumber','produk','ip','catatanAsli','status','metodeVerif','waktuVerif','auditor','catatan','updatedAt','dcStatus','dcPic','dcFollowUp','dcCatatan','dcUpdatedAt','dcNominal','dcClosingAt'];
+/**
+ * ============================================================
+ * Code.gs - Backend Google Apps Script untuk Follow-up Lead & Closing Lead
+ * ============================================================
+ * Dipasang di Google Sheet yang sudah berisi 2 sheet:
+ *   - "Follow-up Lead"  (lead hasil audit = Tidak real)
+ *   - "Closing Lead"    (lead hasil audit = Real, termasuk yang sudah closing)
+ * Struktur kolomnya sama persis dengan file Excel
+ * "FollowUp_Closing_Lead.xlsx" yang sudah dibuat sebelumnya.
+ *
+ * CARA PASANG:
+ * 1. Buka Google Sheet (bisa hasil upload/convert dari
+ *    FollowUp_Closing_Lead.xlsx, atau Sheet baru kosong).
+ * 2. Menu Extensions > Apps Script.
+ * 3. Hapus isi default di editor, tempel semua isi file ini, lalu Simpan.
+ * 4. Klik Deploy > New deployment.
+ *    - Select type: Web app
+ *    - Execute as: Me
+ *    - Who has access: Anyone
+ *    - Klik Deploy, izinkan akses saat diminta.
+ * 5. Salin URL yang berakhiran /exec, tempel ke kolom
+ *    "URL Web App Google Apps Script" di dashboard.
+ * 6. Setiap kode ini diubah, deploy ulang lewat
+ *    Manage deployments > edit (pensil) > New version > Deploy.
+ * ============================================================
+ */
 
-function getSheet_() {
+const SHEET_DC = 'Follow-up Lead';
+const SHEET_RC = 'Closing Lead';
+
+// urutan HARUS sama persis dengan urutan kolom di sheet (posisi kolom,
+// bukan teks headernya) - lihat file Excel untuk header tampilan aslinya.
+const HEAD_DC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
+                 'dcFollowUp', 'dcStatus', 'dcCatatan', 'dcNominal', 'dcClosingAt', 'dcPic'];
+const HEAD_RC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
+                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcPic'];
+
+// kolom yang harus disimpan sebagai teks (supaya "081..." / tanggal string
+// tidak diubah otomatis jadi angka/tanggal oleh Google Sheets)
+const TEXT_FIELDS = ['tanggal', 'hp', 'dcFollowUp', 'dcClosingAt', 'rcClosingAt'];
+
+function getSheet_(name, head) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(SHEET);
-  let init = false;
+  let sh = ss.getSheetByName(name);
+  let created = false;
   if (!sh) {
-    init = true;
-    sh = ss.insertSheet(SHEET);
-    sh.appendRow(HEAD);
+    created = true;
+    sh = ss.insertSheet(name);
+    sh.appendRow(head);
     sh.setFrozenRows(1);
-    sh.getRange('B:B').setNumberFormat('@');
-    sh.getRange('D:D').setNumberFormat('@');
   }
-  if (init || sh.getLastColumn() < HEAD.length) {
-    sh.getRange(1, 1, 1, HEAD.length).setValues([HEAD]);
-    ['dcFollowUp', 'dcClosingAt'].forEach(function (h) { sh.getRange(1, HEAD.indexOf(h) + 1, sh.getMaxRows(), 1).setNumberFormat('@'); });
+  // hanya menulis ulang header kalau sheet baru dibuat, atau jumlah
+  // kolomnya kurang dari yang dibutuhkan - header Indonesia yang sudah
+  // ada di file Excel TIDAK akan ditimpa selama jumlah kolomnya cocok.
+  if (created || sh.getLastColumn() < head.length) {
+    sh.getRange(1, 1, 1, head.length).setValues([head]);
   }
+  TEXT_FIELDS.forEach(function (f) {
+    const idx = head.indexOf(f);
+    if (idx >= 0) sh.getRange(1, idx + 1, sh.getMaxRows(), 1).setNumberFormat('@');
+  });
   return sh;
 }
 
@@ -520,16 +618,63 @@ function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function doGet(e) {
-  const vals = getSheet_().getDataRange().getValues();
+function readRows_(sh, head) {
+  const vals = sh.getDataRange().getValues();
   const rows = [];
   for (let i = 1; i < vals.length; i++) {
-    if (!vals[i][0]) continue;
+    if (!vals[i][0]) continue; // lewati baris kosong / baris "contoh"
     const o = {};
-    HEAD.forEach(function (h, j) { o[h] = String(vals[i][j] == null ? '' : vals[i][j]); });
+    head.forEach(function (h, j) { o[h] = String(vals[i][j] == null ? '' : vals[i][j]); });
     rows.push(o);
   }
-  return json_({ ok: true, rows: rows });
+  return rows;
+}
+
+function sheetFor_(kind) {
+  return kind === 'rc'
+    ? { sh: getSheet_(SHEET_RC, HEAD_RC), head: HEAD_RC }
+    : { sh: getSheet_(SHEET_DC, HEAD_DC), head: HEAD_DC };
+}
+
+function idColumn_(sh) {
+  const last = Math.max(sh.getLastRow(), 1);
+  return sh.getRange(1, 1, last, 1).getValues().map(function (r) { return String(r[0]); });
+}
+
+function upsert_(kind, row) {
+  const { sh, head } = sheetFor_(kind);
+  const ids = idColumn_(sh);
+  const idx = ids.indexOf(String(row.orderId));
+  const line = head.map(function (h) { return row[h] === undefined ? '' : row[h]; });
+  if (idx > 0) {
+    sh.getRange(idx + 1, 1, 1, head.length).setValues([line]);
+  } else {
+    sh.appendRow(line);
+  }
+}
+
+function delete_(kind, orderId) {
+  const { sh } = sheetFor_(kind);
+  const ids = idColumn_(sh);
+  const idx = ids.indexOf(String(orderId));
+  if (idx > 0) sh.deleteRow(idx + 1);
+}
+
+/**
+ * Pindahkan 1 lead antar sheet, misalnya hasil audit ulang berubah dari
+ * "Tidak real" jadi "Real" (atau sebaliknya). Kolom yang namanya tidak ada
+ * di sheet tujuan otomatis dikosongkan.
+ * body: { action:'move', from:'dc'|'rc', to:'dc'|'rc', row:{...semua kolom yang mau dibawa...} }
+ */
+function move_(from, to, row) {
+  upsert_(to, row);
+  delete_(from, row.orderId);
+}
+
+function doGet(e) {
+  const dc = readRows_(getSheet_(SHEET_DC, HEAD_DC), HEAD_DC);
+  const rc = readRows_(getSheet_(SHEET_RC, HEAD_RC), HEAD_RC);
+  return json_({ ok: true, dc: dc, rc: rc });
 }
 
 function doPost(e) {
@@ -537,29 +682,14 @@ function doPost(e) {
   lock.waitLock(30000);
   try {
     const body = JSON.parse(e.postData.contents);
-    const sh = getSheet_();
-    const last = Math.max(sh.getLastRow(), 1);
-    const ids = sh.getRange(1, 1, last, 1).getValues().map(function (r) { return String(r[0]); });
     if (body.action === 'upsert') {
-      const r = body.row;
-      const part = body.part; // 'audit' = kolom audit saja, 'dc' = kolom follow-up saja
-      const isDc = function (h) { return h.indexOf('dc') === 0; };
-      const idx = ids.indexOf(String(r.orderId));
-      if (idx > 0) {
-        const cur = sh.getRange(idx + 1, 1, 1, HEAD.length).getValues()[0];
-        const line = HEAD.map(function (h, j) {
-          const mine = !part || (part === 'dc') === isDc(h);
-          return mine ? (r[h] === undefined ? '' : r[h]) : cur[j];
-        });
-        sh.getRange(idx + 1, 1, 1, HEAD.length).setValues([line]);
-      } else if (part === 'dc') {
-        return json_({ ok: true, skipped: true }); // lead sudah dikeluarkan auditor, jangan dihidupkan lagi
-      } else {
-        sh.appendRow(HEAD.map(function (h) { return r[h] === undefined ? '' : r[h]; }));
-      }
+      upsert_(body.kind, body.row);
     } else if (body.action === 'delete') {
-      const idx = ids.indexOf(String(body.id));
-      if (idx > 0) sh.deleteRow(idx + 1);
+      delete_(body.kind, body.id);
+    } else if (body.action === 'move') {
+      move_(body.from, body.to, body.row);
+    } else {
+      throw new Error('Aksi tidak dikenali: ' + body.action);
     }
     return json_({ ok: true });
   } catch (err) {
@@ -587,12 +717,14 @@ function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e)
 var ROWS  = load(LS.rows, []);
 var DIRTY = new Set(load(LS.dirty, []));
 var DEL   = new Set(load(LS.del, []));
-var REMOTE = new Set(load('audit_lead_remote', [])); /* id lead yang ada di Sheet */
+var REMOTE = load('audit_lead_remote', {}); /* {orderId: 'dc'|'rc'} - sheet & kind tempat lead ini tersimpan */
+if (Array.isArray(REMOTE)) REMOTE = {}; /* migrasi dari format lama (Set of ids) - paksa sinkron ulang sekali */
+var LOCAL_ONLY = ['jam','produk','ip','catatanAsli','metodeVerif','waktuVerif','auditor','updatedAt','dcUpdatedAt']; /* kolom yang tidak ada di Code.gs baru, disimpan lokal saja */
 var SET   = Object.assign({url:'', theme:''}, load(LS.set, {}));
 var F     = {day: ymd(new Date()), cs:'', status:'ANY', q:''}; /* tab Audit Lead: satu hari */
 var PS    = {period:'today', from:'', to:''};               /* tab Follow-up Lead: periode laporan */
 
-function persist(){ store(LS.rows, ROWS); store(LS.dirty, Array.from(DIRTY)); store(LS.del, Array.from(DEL)); store('audit_lead_remote', Array.from(REMOTE)); store(LS.set, SET); }
+function persist(){ store(LS.rows, ROWS); store(LS.dirty, Array.from(DIRTY)); store(LS.del, Array.from(DEL)); store('audit_lead_remote', REMOTE); store(LS.set, SET); }
 
 /* ---------- CSV parsing ---------- */
 function parseCSV(text){
@@ -644,10 +776,10 @@ function importCSV(text){
     var idx = ROWS.findIndex(function(x){ return x.orderId === lead.orderId; });
     if (idx >= 0){
       var old = ROWS[idx];
-      ROWS[idx] = Object.assign({}, lead, {status: old.status||'', auditor: old.auditor||'', catatan: old.catatan||'', metodeVerif: old.metodeVerif||'', waktuVerif: old.waktuVerif||'', updatedAt: old.updatedAt||'', dcStatus: old.dcStatus||'', dcPic: old.dcPic||'', dcFollowUp: old.dcFollowUp||'', dcCatatan: old.dcCatatan||'', dcUpdatedAt: old.dcUpdatedAt||'', dcNominal: old.dcNominal||'', dcClosingAt: old.dcClosingAt||''});
+      ROWS[idx] = Object.assign({}, lead, {status: old.status||'', auditor: old.auditor||'', catatan: old.catatan||'', metodeVerif: old.metodeVerif||'', waktuVerif: old.waktuVerif||'', updatedAt: old.updatedAt||'', dcStatus: old.dcStatus||'', dcPic: old.dcPic||'', dcFollowUp: old.dcFollowUp||'', dcCatatan: old.dcCatatan||'', dcUpdatedAt: old.dcUpdatedAt||'', dcNominal: old.dcNominal||'', dcClosingAt: old.dcClosingAt||'', rcStatus: old.rcStatus||'', rcPic: old.rcPic||'', rcNominal: old.rcNominal||'', rcClosingAt: old.rcClosingAt||'', rcCatatan: old.rcCatatan||''});
       updated++;
     } else {
-      ROWS.push(Object.assign({}, lead, {status:'', auditor:'', catatan:'', metodeVerif:'', waktuVerif:'', updatedAt:'', dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:''}));
+      ROWS.push(Object.assign({}, lead, {status:'', auditor:'', catatan:'', metodeVerif:'', waktuVerif:'', updatedAt:'', dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:'', rcStatus:'', rcPic:'', rcNominal:'', rcClosingAt:'', rcCatatan:''}));
       added++;
     }
   }
@@ -676,7 +808,15 @@ function flagsFor(r, idx){
 
 /* ---------- status ---------- */
 var STLABEL = {real:'Real', fake:'Tidak real', cek:'Perlu dicek', '':'Belum diperiksa'};
+var STOPTLABEL = {'':'Belum diperiksa', cek:'Perlu dicek', real:'Real, belum closing', real_closing:'Real, sudah closing', fake:'Tidak real'};
 function stCls(s){ return s === 'real' ? 'real' : s === 'fake' ? 'fake' : s === 'cek' ? 'cek' : 'blank'; }
+
+/* status closing untuk lead yang sudah ditandai Real: ikut sinkron ke Sheet selama bukan hasil closing langsung dari Audit Lead (rcDirect, milik CS biasa) — lihat syncable() */
+var RCLABEL = {'':'Belum ditangani', konsultasi:'Konsultasi', negosiasi:'Negosiasi', tunggu_bayar:'Menunggu pembayaran', closing:'Closing', batal:'Tidak jadi'};
+function rcRun(r){ return ['konsultasi','negosiasi','tunggu_bayar'].indexOf(r.rcStatus||'') >= 0; }
+function rcCls(s){ return s === 'closing' ? 'real' : s === 'batal' ? 'blank' : (['konsultasi','negosiasi','tunggu_bayar'].indexOf(s||'') >= 0 ? 'run' : 'cek'); }
+function rcOpts(sel){ return Object.keys(RCLABEL).map(function(k){ return '<option value="' + k + '"' + (sel===k?' selected':'') + '>' + RCLABEL[k] + '</option>'; }).join(''); }
+function rcOptsFilter(sel){ return Object.keys(RCLABEL).map(function(k){ return '<option value="' + k + '"' + (sel===k?' selected':'') + '>' + RCLABEL[k] + '</option>'; }).join(''); }
 
 /* ---------- verifikasi ---------- */
 /* Daftar metode verifikasi: ubah/tambah di sini, dropdown ikut berubah */
@@ -868,10 +1008,14 @@ function renderCS(rows){
 
 var MAXROWS = 300;
 function renderTable(rows){
-  rows = rows.filter(function(r){ return r.status !== 'fake'; }); /* Tidak real sudah pindah ke tab Follow-up Lead */
+  rows = rows.filter(function(r){
+    if (r.status === 'fake') return false;
+    if (r.status === 'real') return r.rcStatus === 'closing' && r.rcDirect; /* closing langsung (CS biasa) tetap di Audit Lead; sisanya (CS DL) di tab Closing Lead */
+    return true;
+  });
   var sorted = rows.slice().sort(function(a,b){ return (b.tanggal+b.jam).localeCompare(a.tanggal+a.jam); });
   $('#detNote').textContent = rows.length + ' lead';
-  if (!sorted.length){ $('#tbody').innerHTML = '<tr><td colspan="10">' + empty(ROWS.length ? 'Tidak ada lead yang perlu dilihat pada tanggal ini. Lead Tidak real ada di tab Follow-up Lead.' : 'Belum ada data. Klik Upload CSV untuk mulai.') + '</td></tr>'; return; }
+  if (!sorted.length){ $('#tbody').innerHTML = '<tr><td colspan="11">' + empty(ROWS.length ? 'Tidak ada lead yang perlu dilihat pada tanggal ini. Lead Tidak real ada di tab Follow-up Lead, lead Real (kecuali yang closing langsung di sini) ada di tab Closing Lead.' : 'Belum ada data. Klik Upload CSV untuk mulai.') + '</td></tr>'; return; }
   var idx = buildDupIndex();
   var shown = sorted.slice(0, MAXROWS);
   $('#tbody').innerHTML = shown.map(function(r){
@@ -887,14 +1031,53 @@ function renderTable(rows){
       '<td>' + flHtml + '</td>' +
       '<td>' + verifCell(r) + '</td>' +
       '<td><select class="st-' + (r.status || 'blank') + '" data-act="status" data-id="' + esc(r.orderId) + '" aria-label="Status lead">' +
-        Object.keys(STLABEL).map(function(k){ return '<option value="' + k + '"' + (r.status===k?' selected':'') + '>' + STLABEL[k] + '</option>'; }).join('') +
+        Object.keys(STOPTLABEL).map(function(k){
+          var sel = (r.status === 'real' && r.rcStatus === 'closing') ? 'real_closing' : r.status;
+          return '<option value="' + k + '"' + (sel===k?' selected':'') + '>' + STOPTLABEL[k] + '</option>';
+        }).join('') +
       '</select></td>' +
+      '<td>' + (r.status === 'real'
+        ? '<select class="st-' + rcCls(r.rcStatus) + '" data-act="rcStatus" data-id="' + esc(r.orderId) + '" aria-label="Status closing">' + rcOpts(r.rcStatus||'') + '</select>'
+        : '<span class="muted">–</span>') + '</td>' +
       '<td><div class="rowact"><button class="btn sm" data-act="edit" data-id="' + esc(r.orderId) + '">Detail</button><button class="btn sm danger" data-act="del" data-id="' + esc(r.orderId) + '">Hapus</button></div></td>' +
     '</tr>';
-  }).join('') + (sorted.length > MAXROWS ? '<tr><td colspan="10" class="more">Menampilkan ' + MAXROWS + ' lead terbaru dari ' + sorted.length + '. Persempit filter atau ekspor CSV untuk semuanya.</td></tr>' : '');
+  }).join('') + (sorted.length > MAXROWS ? '<tr><td colspan="11" class="more">Menampilkan ' + MAXROWS + ' lead terbaru dari ' + sorted.length + '. Persempit filter atau ekspor CSV untuk semuanya.</td></tr>' : '');
 }
 
 function csNames(){ var s={}; ROWS.forEach(function(r){ if (r.cs) s[r.cs]=1; }); return Object.keys(s).sort(); }
+function picNames(){ var s={}; ROWS.forEach(function(r){ if (r.dcPic) s[r.dcPic]=1; if (r.rcPic) s[r.rcPic]=1; }); return Object.keys(s).sort(); }
+function openPic(){
+  var names = picNames();
+  $('#picList').innerHTML = names.length ? names.map(function(n){
+    var cnt = ROWS.filter(function(r){ return r.dcPic === n || r.rcPic === n; }).length;
+    return '<div class="field"><label>' + esc(n) + ' <span class="muted">(' + cnt + ' lead)</span></label>' +
+      '<input type="text" data-old="' + esc(n) + '" value="' + esc(n) + '"></div>';
+  }).join('') : '<p class="hint">Belum ada nama CS DL. Nama akan muncul di sini setelah diisi lewat tombol Kelola di tab Follow-up Lead / Closing Lead.</p>';
+  $('#dlgPic').showModal();
+}
+function savePic(){
+  var inputs = Array.prototype.slice.call(document.querySelectorAll('#picList input[data-old]'));
+  var renames = [];
+  inputs.forEach(function(inp){
+    var oldName = inp.dataset.old, newName = inp.value.trim();
+    if (!newName || newName === oldName) return;
+    renames.push([oldName, newName]);
+  });
+  if (!renames.length){ $('#dlgPic').close(); return; }
+  var changed = [];
+  renames.forEach(function(pair){
+    var oldName = pair[0], newName = pair[1];
+    ROWS.forEach(function(r){
+      var hit = false;
+      if (r.dcPic === oldName){ r.dcPic = newName; hit = true; }
+      if (r.rcPic === oldName){ r.rcPic = newName; hit = true; }
+      if (hit){ r.updatedAt = new Date().toISOString(); changed.push(r); }
+    });
+  });
+  persist(); renderAll(); $('#dlgPic').close();
+  toast('Nama CS DL diganti untuk ' + changed.length + ' lead.');
+  changed.forEach(function(r){ pushRow(r); });
+}
 function renderCsFilter(){
   var names = csNames(), sel = $('#fCs');
   if (F.cs && names.indexOf(F.cs) < 0) F.cs = '';
@@ -904,7 +1087,7 @@ function renderCsFilter(){
 function renderAll(){
   renderCsFilter();
   var base = filtered(true), rows = filtered();
-  renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); redrawPickers();
+  renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); redrawPickers();
   $('#fDay').value = F.day; $('#fStatus').value = F.status;
 }
 
@@ -930,7 +1113,7 @@ function dcData(){
   var all = ROWS.filter(function(r){ return r.status === 'fake'; });
   var q = DCF.q.trim().toLowerCase();
   var rows = all.filter(function(r){
-    if (DCF.cs && r.cs !== DCF.cs) return false;
+    if (DCF.cs && r.dcPic !== DCF.cs) return false;
     if (DCF.st === 'late'){ if (!dcLate(r)) return false; }
     else if (DCF.st === 'aktif'){ if (dcDone(r)) return false; }
     else if (DCF.st === 'run'){ if (['dihubungi', 'nores', 'janji'].indexOf(r.dcStatus || '') < 0) return false; }
@@ -970,10 +1153,10 @@ function renderDC(){
   var todo = all.filter(function(r){ return !r.dcStatus; }).length;
   var badge = $('#dcCount'); badge.textContent = todo; badge.hidden = !todo;
 
-  var names = {}; all.forEach(function(r){ if (r.cs) names[r.cs] = 1; });
+  var names = {}; all.forEach(function(r){ if (r.dcPic) names[r.dcPic] = 1; });
   var nl = Object.keys(names).sort();
   if (DCF.cs && nl.indexOf(DCF.cs) < 0) DCF.cs = '';
-  $('#dcCs').innerHTML = '<option value="">Semua CS</option>' + nl.map(function(n){ return '<option' + (n===DCF.cs?' selected':'') + '>' + esc(n) + '</option>'; }).join('');
+  $('#dcCs').innerHTML = '<option value="">Semua CS DL</option>' + nl.map(function(n){ return '<option' + (n===DCF.cs?' selected':'') + '>' + esc(n) + '</option>'; }).join('');
 
   var run = all.filter(function(r){ return r.dcStatus === 'dihubungi' || r.dcStatus === 'nores' || r.dcStatus === 'janji'; }).length;
   var done = all.filter(function(r){ return r.dcStatus === 'selesai'; }).length;
@@ -1004,7 +1187,7 @@ function renderDC(){
       '<td><strong>' + esc(r.nama||'–') + '</strong></td>' +
       '<td>' + esc(r.hp||'–') + waLink(r.hp) + '</td>' +
       '<td class="addr" title="' + esc(r.alamat) + '">' + esc(r.alamat||'–') + '</td>' +
-      '<td>' + esc(r.cs||'–') + '</td>' +
+      '<td>' + esc(r.dcPic||'–') + '</td>' +
       '<td><input type="date" data-act="dcFU" data-id="' + id + '" value="' + esc(r.dcFollowUp||'') + '" aria-label="Tanggal follow-up">' + (dcLate(r) ? '<div><span class="flag bad">Terlambat</span></div>' : '') + '</td>' +
       '<td><select class="st-' + dcTone(r.dcStatus) + '" data-act="dcStatus" data-id="' + id + '" aria-label="Status penanganan">' + dcOpts(r.dcStatus||'') + '</select>' + (r.dcStatus === 'selesai' && (r.dcNominal || r.dcClosingAt) ? '<div class="hint">' + [r.dcClosingAt ? dm(r.dcClosingAt) : '', r.dcNominal ? rp(r.dcNominal) : ''].filter(Boolean).join(' · ') + '</div>' : '') + '</td>' +
       '<td><div class="rowact"><button class="btn sm" data-act="dcEdit" data-id="' + id + '">Kelola</button></div></td>' +
@@ -1013,12 +1196,14 @@ function renderDC(){
 }
 function openDC(id){
   var r = ROWS.find(function(x){ return x.orderId === id; }); if (!r) return;
-  var info = [['Nama', r.nama], ['HP', r.hp], ['Alamat', r.alamat], ['CS', r.cs],
+  var info = [['Nama', r.nama], ['HP', r.hp], ['Alamat', r.alamat],
     ['Verifikasi', (METLABEL[r.metodeVerif] || '–') + (r.waktuVerif ? ' · ' + fmtVerifWaktu(r.waktuVerif) : '')],
     ['Catatan audit', r.catatan]];
   $('#d_info').innerHTML = info.map(function(x){ return '<div><span class="muted">' + x[0] + '</span>' + esc(x[1] || '–') + '</div>'; }).join('');
   $('#d_id').value = r.orderId;
   $('#dBack').hidden = SET.role === 'dc'; /* hanya auditor yang boleh mengembalikan */
+  $('#d_pic').value = r.dcPic || '';
+  $('#picListDc').innerHTML = picNames().map(function(n){ return '<option value="' + esc(n) + '">'; }).join('');
   $('#d_fu').value = r.dcFollowUp || '';
   $('#d_st').innerHTML = dcOpts(r.dcStatus || '');
   $('#d_nom').value = r.dcNominal || '';
@@ -1030,15 +1215,128 @@ function openDC(id){
 function exportDC(){
   var rows = dcData().rows;
   if (!rows.length) return toast('Tidak ada lead follow-up untuk diekspor.');
-  var head = ['Tanggal','Nama','HP','Alamat','CS','Sumber','Catatan Audit','Follow-up','Status Penanganan','Catatan Penanganan','Nominal Closing','Tanggal Closing'];
+  var head = ['Tanggal','Nama','HP','Alamat','CS DL','Sumber','Catatan Audit','Follow-up','Status Penanganan','Catatan Penanganan','Nominal Closing','Tanggal Closing'];
   var lines = [head].concat(rows.map(function(r){
-    return [r.tanggal, r.nama, r.hp, r.alamat, r.cs, r.sumber, r.catatan, r.dcFollowUp, DCLABEL[r.dcStatus||''], r.dcCatatan, r.dcNominal, r.dcClosingAt];
+    return [r.tanggal, r.nama, r.hp, r.alamat, r.dcPic, r.sumber, r.catatan, r.dcFollowUp, DCLABEL[r.dcStatus||''], r.dcCatatan, r.dcNominal, r.dcClosingAt];
   })).map(function(a){ return a.map(function(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }).join(','); });
   var blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'follow-up-lead-' + ymd(new Date()) + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
 }
+/* ---------- closing lead (real) ---------- */
+var RCF = {cs:'', st:'aktif', q:''};
+var dlgRC = $('#dlgRC');
+function rcData(){
+  var all = ROWS.filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); }); /* lead Real milik CS DL; closing langsung dari Audit (CS biasa) tidak masuk sini */
+  var q = RCF.q.trim().toLowerCase();
+  var rows = all.filter(function(r){
+    if (RCF.cs && r.rcPic !== RCF.cs) return false;
+    if (RCF.st === 'aktif'){ if ((r.rcStatus||'') === 'batal' || (r.rcStatus||'') === 'closing') return false; }
+    else if (RCF.st === 'run'){ if (!rcRun(r)) return false; }
+    else if (RCF.st !== 'ANY' && (r.rcStatus||'') !== RCF.st) return false;
+    if (q && (r.nama+' '+r.hp+' '+r.alamat).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  }).sort(function(a,b){
+    var d = ((a.rcStatus||'')===''?0:1) - ((b.rcStatus||'')===''?0:1); if (d) return d;
+    return (b.tanggal+b.jam).localeCompare(a.tanggal+a.jam);
+  });
+  return {all: all, rows: rows};
+}
+function renderRC(){
+  var d = rcData(), all = d.all, rows = d.rows;
+  var todo = all.filter(function(r){ return !r.rcStatus; }).length;
+  var badge = $('#rcCount'); badge.textContent = todo; badge.hidden = !todo;
+
+  var names = {}; all.forEach(function(r){ if (r.rcPic) names[r.rcPic] = 1; });
+  var nl = Object.keys(names).sort();
+  if (RCF.cs && nl.indexOf(RCF.cs) < 0) RCF.cs = '';
+  $('#rcCs').innerHTML = '<option value="">Semua CS DL</option>' + nl.map(function(n){ return '<option' + (n===RCF.cs?' selected':'') + '>' + esc(n) + '</option>'; }).join('');
+
+  var closedAll = ROWS.filter(function(r){ return r.status === 'real' && r.rcStatus === 'closing' && !r.rcDirect; });
+  var done = closedAll.length;
+  var omzet = closedAll.reduce(function(a, r){ return a + (Number(r.rcNominal) || 0); }, 0);
+  var run = all.filter(rcRun).length;
+  var fail = all.filter(function(r){ return r.rcStatus === 'batal'; }).length;
+  var totalReal = all.length; /* all sudah termasuk yang closing, jangan ditambah lagi */
+  var rate = totalReal ? Math.round(done / totalReal * 100) : 0;
+  var rk = function(cls, f, lbl, val, sub){ return '<button type="button" class="card kpi ' + cls + (RCF.st === f ? ' on' : '') + '" data-rf="' + f + '" aria-pressed="' + (RCF.st === f) + '"><div class="lbl">' + lbl + '</div><div class="val">' + val + '</div><div class="sub">' + sub + '</div></button>'; };
+  $('#rcKpis').innerHTML =
+    rk('k-cek hero', '', 'Belum ditangani', todo, 'lead Real yang belum ada kabar') +
+    rk('k-run', 'run', 'Sedang diproses', run, 'konsultasi / negosiasi / menunggu pembayaran') +
+    rk('k-blank', 'batal', 'Tidak jadi', fail, 'ditutup tanpa closing') +
+    rk('k-real', 'closing', 'Sudah closing', done, rate + '% dari total real') +
+    rk('k-real', 'closing', 'Omzet closing', rpK(omzet), done ? 'rata-rata ' + rp(Math.round(omzet / done)) + ' / closing' : 'belum ada closing');
+  $('#rcSt').value = RCF.st;
+  $('#rcNote').textContent = rows.length + ' lead';
+  if (!rows.length){ $('#rcBody').innerHTML = '<tr><td colspan="7">' + empty(all.length ? 'Tidak ada lead yang cocok dengan filter.' : 'Belum ada lead Real milik alur CS DL. Lead muncul di sini otomatis setelah statusnya diubah jadi "Real, belum closing" di tab Audit Lead, dan tetap di sini walau sudah closing. Lead yang ditandai "Real, sudah closing" langsung tetap di tab Audit Lead.') + '</td></tr>'; return; }
+  $('#rcBody').innerHTML = rows.slice(0, MAXROWS).map(function(r){
+    var id = esc(r.orderId);
+    return '<tr data-st="' + rcCls(r.rcStatus) + '">' +
+      '<td>' + esc(r.tanggal||'–') + '</td>' +
+      '<td><strong>' + esc(r.nama||'–') + '</strong></td>' +
+      '<td>' + esc(r.hp||'–') + waLink(r.hp) + '</td>' +
+      '<td class="addr" title="' + esc(r.alamat) + '">' + esc(r.alamat||'–') + '</td>' +
+      '<td>' + esc(r.rcPic||'–') + '</td>' +
+      '<td><select class="st-' + rcCls(r.rcStatus) + '" data-act="rcStatus" data-id="' + id + '" aria-label="Status closing">' + rcOpts(r.rcStatus||'') + '</select>' + (r.rcStatus === 'closing' && (r.rcNominal || r.rcClosingAt) ? '<div class="hint">' + [r.rcClosingAt ? dm(r.rcClosingAt) : '', r.rcNominal ? rp(r.rcNominal) : ''].filter(Boolean).join(' · ') + '</div>' : '') + '</td>' +
+      '<td><div class="rowact"><button class="btn sm" data-act="rcEdit" data-id="' + id + '">Kelola</button></div></td>' +
+    '</tr>';
+  }).join('') + (rows.length > MAXROWS ? '<tr><td colspan="7" class="more">Menampilkan ' + MAXROWS + ' dari ' + rows.length + ' lead. Persempit filter atau ekspor CSV.</td></tr>' : '');
+}
+function rcUpdate(id, patch){
+  var r = ROWS.find(function(x){ return x.orderId === id; }); if (!r) return;
+  if (patch.rcStatus !== undefined && patch.rcClosingAt === undefined){
+    if (patch.rcStatus !== 'closing') patch.rcClosingAt = '';
+    else if (r.rcStatus !== 'closing') patch.rcClosingAt = ymd(new Date());
+  }
+  Object.assign(r, patch, {updatedAt: new Date().toISOString()});
+  persist(); renderAll(); pushRow(r);
+}
+function openRC(id){
+  var r = ROWS.find(function(x){ return x.orderId === id; }); if (!r) return;
+  var info = [['Nama', r.nama], ['HP', r.hp], ['Alamat', r.alamat], ['Catatan audit', r.catatan]];
+  $('#rc_info').innerHTML = info.map(function(x){ return '<div><span class="muted">' + x[0] + '</span>' + esc(x[1] || '–') + '</div>'; }).join('');
+  $('#rc_id').value = r.orderId;
+  $('#rc_pic').value = r.rcPic || '';
+  $('#picListRc').innerHTML = picNames().map(function(n){ return '<option value="' + esc(n) + '">'; }).join('');
+  $('#rc_st').innerHTML = rcOpts(r.rcStatus || '');
+  $('#rc_cat').value = r.rcCatatan || '';
+  $('#rc_nom').value = r.rcNominal || '';
+  $('#rc_cdate').value = r.rcClosingAt || (r.rcStatus === 'closing' ? '' : ymd(new Date()));
+  $('#rc_nomWrap').hidden = (r.rcStatus || '') !== 'closing';
+  dlgRC.showModal();
+}
+function exportRC(){
+  var rows = rcData().rows;
+  if (!rows.length) return toast('Tidak ada lead closing untuk diekspor.');
+  var head = ['Tanggal','Nama','HP','Alamat','CS DL','Sumber','Status Closing','Catatan','Nominal Closing','Tanggal Closing'];
+  var lines = [head].concat(rows.map(function(r){
+    return [r.tanggal, r.nama, r.hp, r.alamat, r.rcPic, r.sumber, RCLABEL[r.rcStatus||''], r.rcCatatan, r.rcNominal, r.rcClosingAt];
+  })).map(function(a){ return a.map(function(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }).join(','); });
+  var blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'closing-lead-' + ymd(new Date()) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+function waRcText(){
+  var q = rcData().all;
+  var closedAll = ROWS.filter(function(r){ return r.status === 'real' && r.rcStatus === 'closing' && !r.rcDirect; });
+  var todo = q.filter(function(r){ return !r.rcStatus; }).length;
+  var run = q.filter(rcRun).length;
+  var batal = q.filter(function(r){ return r.rcStatus === 'batal'; }).length;
+  var omzet = closedAll.reduce(function(a, r){ return a + (Number(r.rcNominal) || 0); }, 0);
+  var totalReal = q.length + closedAll.length;
+  var DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
+  return ['*LAPORAN CLOSING LEAD (REAL)*',
+    'Dibuat ' + waNow(),
+    DIV,
+    '*Posisi saat ini* — ' + totalReal + ' lead Real',
+    '• Belum ditangani: ' + todo,
+    '• Sedang diproses (konsultasi/negosiasi/menunggu bayar): ' + run,
+    '• Closing: ' + closedAll.length + ' (' + pctS(closedAll.length, totalReal) + ') · omzet ' + rp(omzet),
+    '• Tidak jadi: ' + batal].join('\n');
+}
+
 function applyRole(){
   var dc = SET.role === 'dc';
   document.querySelector('.tabs').hidden = dc;
@@ -1049,9 +1347,9 @@ function applyRole(){
 }
 function setTab(t){
   TAB = t;
-  $('#viewAudit').hidden = t !== 'audit'; $('#viewDC').hidden = t !== 'dc';
-  $('#tabAudit').setAttribute('aria-selected', String(t === 'audit')); $('#tabDC').setAttribute('aria-selected', String(t === 'dc'));
-  ['#btnAdd','#lblChecked'].forEach(function(sel){ $(sel).hidden = t === 'dc'; });
+  $('#viewAudit').hidden = t !== 'audit'; $('#viewDC').hidden = t !== 'dc'; $('#viewRC').hidden = t !== 'rc';
+  $('#tabAudit').setAttribute('aria-selected', String(t === 'audit')); $('#tabDC').setAttribute('aria-selected', String(t === 'dc')); $('#tabRC').setAttribute('aria-selected', String(t === 'rc'));
+  ['#btnAdd','#lblChecked'].forEach(function(sel){ $(sel).hidden = t !== 'audit'; });
 }
 
 /* ---------- laporan whatsapp ---------- */
@@ -1131,15 +1429,16 @@ async function api(method, body){
   var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 25000);
   try{
     var res = method === 'GET'
-      ? await fetch(SET.url + (SET.url.indexOf('?')<0?'?':'&') + 'action=list&_=' + Date.now(), {signal: ctrl.signal})
+      ? await fetch(SET.url + (SET.url.indexOf('?')<0?'?':'&') + '_=' + Date.now(), {signal: ctrl.signal})
       : await fetch(SET.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body), signal: ctrl.signal});
     var j = await res.json();
     if (!j.ok) throw new Error(j.error || 'Respons tidak valid');
     return j;
   } finally { clearTimeout(timer); }
 }
-/* Hanya lead berstatus Tidak real (tab Follow-up Lead) yang disimpan ke Sheet. Sisanya hanya di browser ini. */
-function syncable(r){ return r.status === 'fake'; }
+/* Disimpan ke Sheet: lead Tidak real -> sheet "Follow-up Lead" (kind 'dc'), lead Real milik CS DL -> sheet "Closing Lead" (kind 'rc'), tetap di sheet ini walau sudah closing. Lead Real yang closing langsung dari Audit Lead (rcDirect, milik CS biasa) tidak dikirim ke Sheet, cukup lokal di tab Audit Lead. */
+function syncable(r){ return r.status === 'fake' || (r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect)); }
+function kindOf(r){ return r.status === 'fake' ? 'dc' : (r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect) ? 'rc' : null); }
 function part(){ return SET.role === 'dc' ? 'dc' : 'audit'; }
 /* baris yang sedang diedit lokal: bagian milik sendiri dipertahankan, bagian milik peran lain diambil dari Sheet */
 function mergeParts(local, srv){
@@ -1147,41 +1446,90 @@ function mergeParts(local, srv){
   Object.keys(srv).forEach(function(k){ if ((k.indexOf('dc') === 0) !== (SET.role === 'dc')) out[k] = srv[k]; });
   return out;
 }
+/* Code.gs baru cuma simpan sebagian kolom per sheet - petakan baris lokal -> baris yang dikirim */
+function toDcRow(r){
+  return {orderId:r.orderId, tanggal:r.tanggal||'', nama:r.nama||'', hp:r.hp||'', alamat:r.alamat||'', cs:r.cs||'', sumber:r.sumber||'',
+    catatanAudit:r.catatan||'', dcFollowUp:r.dcFollowUp||'', dcStatus:r.dcStatus||'', dcCatatan:r.dcCatatan||'', dcNominal:r.dcNominal||'', dcClosingAt:r.dcClosingAt||'', dcPic:r.dcPic||''};
+}
+function toRcRow(r){
+  return {orderId:r.orderId, tanggal:r.tanggal||'', nama:r.nama||'', hp:r.hp||'', alamat:r.alamat||'', cs:r.cs||'', sumber:r.sumber||'',
+    catatanAudit:r.catatan||'', rcStatus:r.rcStatus||'', rcCatatan:r.rcCatatan||'', rcNominal:r.rcNominal||'', rcClosingAt:r.rcClosingAt||'', rcPic:r.rcPic||''};
+}
+/* ...dan sebaliknya, baris dari Sheet -> bentuk lengkap lokal (kolom lokal-saja diisi kosong dulu, ditimpa data lokal lewat overlayLocalOnly) */
+function fromDcRow(o){
+  return {orderId:o.orderId, tanggal:o.tanggal||'', jam:'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:'', ip:'',
+    catatanAsli:'', status:'fake', metodeVerif:'', waktuVerif:'', auditor:'', catatan:o.catatanAudit||'', updatedAt:'',
+    dcStatus:o.dcStatus||'', dcPic:o.dcPic||'', dcFollowUp:o.dcFollowUp||'', dcCatatan:o.dcCatatan||'', dcUpdatedAt:'', dcNominal:o.dcNominal||'', dcClosingAt:o.dcClosingAt||'',
+    rcStatus:'', rcPic:'', rcNominal:'', rcClosingAt:'', rcCatatan:''};
+}
+function fromRcRow(o){
+  return {orderId:o.orderId, tanggal:o.tanggal||'', jam:'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:'', ip:'',
+    catatanAsli:'', status:'real', metodeVerif:'', waktuVerif:'', auditor:'', catatan:o.catatanAudit||'', updatedAt:'',
+    dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:'',
+    rcStatus:o.rcStatus||'', rcPic:o.rcPic||'', rcNominal:o.rcNominal||'', rcClosingAt:o.rcClosingAt||'', rcCatatan:o.rcCatatan||''};
+}
+/* kolom yang tidak dikenal Code.gs baru (jam/produk/ip/dst) tidak pernah dikirim, jadi harus ditimpal balik dari data lokal setiap pull */
+function overlayLocalOnly(remoteRow){
+  var local = ROWS.find(function(x){ return x.orderId === remoteRow.orderId; });
+  var out = Object.assign({}, remoteRow);
+  if (local) LOCAL_ONLY.forEach(function(f){ if (local[f]) out[f] = local[f]; });
+  return out;
+}
+/* kirim 1 baris ke sheet yang tepat, pindah sheet (action:'move') kalau kind-nya berubah sejak terakhir sinkron */
+async function syncRow(r){
+  var kind = kindOf(r), prevKind = REMOTE[r.orderId];
+  if (!kind){
+    if (prevKind){ await api('POST', {action:'delete', kind:prevKind, id:r.orderId}); delete REMOTE[r.orderId]; }
+    return;
+  }
+  var row = kind === 'dc' ? toDcRow(r) : toRcRow(r);
+  if (prevKind && prevKind !== kind) await api('POST', {action:'move', from:prevKind, to:kind, row:row});
+  else await api('POST', {action:'upsert', kind:kind, row:row});
+  REMOTE[r.orderId] = kind;
+}
 async function pushRow(r){
   if (!syncable(r)){
     DIRTY.delete(r.orderId);
-    if (REMOTE.has(r.orderId)) return pushDelete(r.orderId); /* keluar dari Follow-up Lead -> hapus dari Sheet */
+    if (REMOTE[r.orderId]) return pushDelete(r.orderId); /* keluar dari sheet -> hapus dari Sheet */
     persist(); return refreshSync();
   }
   DIRTY.add(r.orderId); persist();
   if (!SET.url) return refreshSync();
-  try{ await api('POST', {action:'upsert', row:r, part:part()}); DIRTY.delete(r.orderId); REMOTE.add(r.orderId); persist(); refreshSync(); }
+  try{ await syncRow(r); DIRTY.delete(r.orderId); persist(); refreshSync(); }
   catch(e){ refreshSync(); toast('Belum tersimpan ke Sheet (' + e.message + '). Akan dikirim ulang saat Sinkron.'); }
 }
 async function pushMany(rows){
   if (!SET.url){ rows.forEach(function(r){ DIRTY.add(r.orderId); }); persist(); return refreshSync(); }
   setSync('busy', 'Mengirim ' + rows.length + ' lead…');
   for (var i=0;i<rows.length;i++){
-    try{ await api('POST', {action:'upsert', row: rows[i], part:part()}); REMOTE.add(rows[i].orderId); }
+    try{ await syncRow(rows[i]); }
     catch(e){ DIRTY.add(rows[i].orderId); }
   }
   persist(); refreshSync();
 }
 async function pushDelete(id){
+  var kind = REMOTE[id];
   DEL.add(id); DIRTY.delete(id); persist();
-  if (!SET.url) return refreshSync();
-  try{ await api('POST', {action:'delete', id:id}); DEL.delete(id); REMOTE.delete(id); persist(); refreshSync(); }
+  if (!SET.url || !kind){ delete REMOTE[id]; persist(); return refreshSync(); }
+  try{ await api('POST', {action:'delete', kind:kind, id:id}); DEL.delete(id); delete REMOTE[id]; persist(); refreshSync(); }
   catch(e){ refreshSync(); toast('Hapus belum sampai ke Sheet (' + e.message + ').'); }
 }
 async function flush(){
   var ids = Array.from(DIRTY);
   for (var i=0;i<ids.length;i++){
     var r = ROWS.find(function(x){ return x.orderId === ids[i]; });
-    if (!r || !syncable(r)){ DIRTY.delete(ids[i]); continue; }
-    try{ await api('POST', {action:'upsert', row:r, part:part()}); DIRTY.delete(ids[i]); REMOTE.add(ids[i]); }catch(e){}
+    if (!r || !syncable(r)){
+      DIRTY.delete(ids[i]);
+      if (r && REMOTE[ids[i]]){ try{ await api('POST', {action:'delete', kind:REMOTE[ids[i]], id:ids[i]}); delete REMOTE[ids[i]]; }catch(e){} }
+      continue;
+    }
+    try{ await syncRow(r); DIRTY.delete(ids[i]); }catch(e){}
   }
   var dels = Array.from(DEL);
-  for (var k=0;k<dels.length;k++){ try{ await api('POST', {action:'delete', id:dels[k]}); DEL.delete(dels[k]); REMOTE.delete(dels[k]); }catch(e){} }
+  for (var k=0;k<dels.length;k++){
+    var kind = REMOTE[dels[k]];
+    try{ if (kind) await api('POST', {action:'delete', kind:kind, id:dels[k]}); DEL.delete(dels[k]); delete REMOTE[dels[k]]; }catch(e){}
+  }
   persist();
 }
 async function pull(){
@@ -1190,14 +1538,18 @@ async function pull(){
   try{
     await flush();
     var j = await api('GET');
-    var serverIds = new Set(j.rows.map(function(r){ return r.orderId; }));
-    var merged = j.rows.filter(function(r){ return !DEL.has(r.orderId); }).map(function(r){
+    var serverRows = (j.dc||[]).map(fromDcRow).concat((j.rc||[]).map(fromRcRow));
+    var serverIds = new Set(serverRows.map(function(r){ return r.orderId; }));
+    var merged = serverRows.filter(function(r){ return !DEL.has(r.orderId); }).map(function(r){
+      var withLocalOnly = overlayLocalOnly(r);
       var local = DIRTY.has(r.orderId) ? ROWS.find(function(x){ return x.orderId === r.orderId; }) : null;
-      return local ? mergeParts(local, r) : r;
+      return local ? mergeParts(local, withLocalOnly) : withLocalOnly;
     });
     /* lead audit yang belum/tidak ke Sheet tetap dipertahankan di browser ini */
     ROWS.forEach(function(r){ if (!serverIds.has(r.orderId) && (DIRTY.has(r.orderId) || !syncable(r))) merged.push(r); });
-    REMOTE = new Set(merged.filter(function(r){ return serverIds.has(r.orderId); }).map(function(r){ return r.orderId; }));
+    var newRemote = {};
+    merged.forEach(function(r){ if (serverIds.has(r.orderId)){ var k = kindOf(r); if (k) newRemote[r.orderId] = k; } });
+    REMOTE = newRemote;
     ROWS = merged; persist(); renderAll(); refreshSync();
   }catch(e){ setSync('err', 'Gagal sinkron: ' + e.message); toast('Gagal sinkron: ' + e.message + '. Data lokal tetap aman.'); }
 }
@@ -1268,7 +1620,7 @@ async function delRow(id){
   if (!r || !confirm('Hapus lead ' + (r.nama||id) + '?')) return;
   ROWS = ROWS.filter(function(x){ return x.orderId !== id; });
   DIRTY.delete(id); persist(); renderAll();
-  if (REMOTE.has(id)) await pushDelete(id); else refreshSync();
+  if (REMOTE[id]) await pushDelete(id); else refreshSync();
 }
 
 /* ---------- laporan ---------- */
@@ -1277,10 +1629,10 @@ function exportCSV(){
   var rows = filtered().slice().sort(function(a,b){ return (a.tanggal+a.jam).localeCompare(b.tanggal+b.jam); });
   if (!rows.length) return toast('Tidak ada data untuk diekspor.');
   var idx = buildDupIndex();
-  var head = ['Tanggal','Nama','HP','Alamat','CS','Sumber','Status','Indikasi','Metode Verifikasi','Waktu Verifikasi','Catatan'];
+  var head = ['Tanggal','Nama','HP','Alamat','CS','Sumber','Status','Status Closing','Indikasi','Metode Verifikasi','Waktu Verifikasi','Catatan'];
   var lines = [head].concat(rows.map(function(r){
     var fl = flagsFor(r, idx).map(function(f){ return f.t; }).join('; ');
-    return [r.tanggal, r.nama, r.hp, r.alamat, r.cs, r.sumber, STLABEL[r.status], fl, METLABEL[r.metodeVerif] || r.metodeVerif || '', fmtVerifWaktu(r.waktuVerif), r.catatan];
+    return [r.tanggal, r.nama, r.hp, r.alamat, r.cs, r.sumber, STLABEL[r.status], r.status === 'real' ? RCLABEL[r.rcStatus||''] : '', fl, METLABEL[r.metodeVerif] || r.metodeVerif || '', fmtVerifWaktu(r.waktuVerif), r.catatan];
   })).map(function(a){ return a.map(function(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }).join(','); });
   var blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'audit-lead-' + ymd(new Date()) + '.csv';
@@ -1320,13 +1672,18 @@ function bind(){
   $('#csvInput').addEventListener('change', function(e){ if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ''; });
   $('#btnAdd').addEventListener('click', function(){ openForm(); });
   $('#btnSync').addEventListener('click', function(){ if (!SET.url){ toast('Isi URL Web App di Pengaturan dulu.'); return; } pull(); });
-  $('#btnExport').addEventListener('click', function(){ if (TAB === 'dc') exportDC(); else exportCSV(); });
+  $('#btnExport').addEventListener('click', function(){ if (TAB === 'dc') exportDC(); else if (TAB === 'rc') exportRC(); else exportCSV(); });
   $('#btnTheme').addEventListener('click', function(){ SET.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; persist(); applyTheme(); });
   $('#btnSetup').addEventListener('click', function(){ $('#s_url').value = SET.url; $('#s_role').value = SET.role === 'dc' ? 'dc' : 'audit'; $('#codeBox').value = $('#codegs').textContent.trim(); dlgSetup.showModal(); });
+  $('#btnPic').addEventListener('click', openPic);
+  $('#picSave').addEventListener('click', savePic);
+  $('#picClose').addEventListener('click', function(){ $('#dlgPic').close(); });
 
   document.querySelectorAll('.tab').forEach(function(b){ b.addEventListener('click', function(){ setTab(b.dataset.tab); }); });
   $('#dcSt').innerHTML = '<option value="aktif">Dalam pengerjaan</option><option value="ANY">Semua status</option>' + dcOpts('ANY') + '<option value="run">Sedang berjalan</option><option value="closed">Ditutup tanpa closing</option><option value="late">Follow-up terlambat</option>';
   $('#dcSt').value = 'aktif';
+  $('#rcSt').innerHTML = '<option value="aktif">Dalam pengerjaan</option><option value="ANY">Semua (antrean)</option>' + rcOptsFilter('ANY') + '<option value="run">Sedang diproses</option>';
+  $('#rcSt').value = 'aktif';
   $('#dcCs').addEventListener('change', function(e){ DCF.cs = e.target.value; renderDC(); });
   $('#dcSt').addEventListener('change', function(e){ DCF.st = e.target.value; renderDC(); });
   $('#dcQ').addEventListener('input', function(e){ DCF.q = e.target.value; renderDC(); });
@@ -1344,7 +1701,7 @@ function bind(){
   });
   $('#formDC').addEventListener('submit', function(ev){
     ev.preventDefault();
-    dcUpdate($('#d_id').value, {dcFollowUp: $('#d_fu').value, dcStatus: $('#d_st').value, dcCatatan: $('#d_cat').value.trim(),
+    dcUpdate($('#d_id').value, {dcPic: $('#d_pic').value.trim(), dcFollowUp: $('#d_fu').value, dcStatus: $('#d_st').value, dcCatatan: $('#d_cat').value.trim(),
       dcNominal: $('#d_st').value === 'selesai' && $('#d_nom').value ? String(Math.max(0, Math.round(Number($('#d_nom').value) || 0))) : '',
       dcClosingAt: $('#d_st').value === 'selesai' ? $('#d_cdate').value : ''});
     dlgDC.close();
@@ -1359,7 +1716,40 @@ function bind(){
   });
   $('#dCancel').addEventListener('click', function(){ dlgDC.close(); });
 
-  $('#btnWA').addEventListener('click', function(){ $('#waText').value = TAB === 'dc' ? waDcText() : waAuditText(); $('#waCopy').textContent = 'Salin'; dlgWA.showModal(); });
+  ['#rcKpis'].forEach(function(sel){ $(sel).addEventListener('click', function(ev){
+    var b = ev.target.closest('[data-rf]'); if (!b) return;
+    var f = b.dataset.rf; RCF.st = RCF.st === f ? 'aktif' : f; renderRC();
+  }); });
+  $('#rcCs').addEventListener('change', function(e){ RCF.cs = e.target.value; renderRC(); });
+  $('#rcSt').addEventListener('change', function(e){ RCF.st = e.target.value; renderRC(); });
+  $('#rcQ').addEventListener('input', function(e){ RCF.q = e.target.value; renderRC(); });
+  $('#rcBody').addEventListener('click', function(ev){
+    var b = ev.target.closest('button[data-act="rcEdit"]'); if (b) openRC(b.dataset.id);
+  });
+  $('#rcBody').addEventListener('change', function(ev){
+    var t = ev.target, id = t.dataset.id; if (!id || t.dataset.act !== 'rcStatus') return;
+    var cur = ROWS.find(function(x){ return x.orderId === id; });
+    rcUpdate(id, {rcStatus: t.value, rcDirect: false});
+    if (t.value === 'closing'){ RCF.st = 'closing'; renderRC(); toast('Lead ditandai Closing. Tetap di tab Closing Lead (filter "Closing").'); if (cur && !cur.rcNominal) openRC(id); }
+  });
+  $('#formRC').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var closingNow = $('#rc_st').value === 'closing';
+    var patch = {rcPic: $('#rc_pic').value.trim(), rcStatus: $('#rc_st').value, rcCatatan: $('#rc_cat').value.trim(), rcDirect: false};
+    if (closingNow){
+      patch.rcNominal = $('#rc_nom').value ? String(Math.max(0, Math.round(Number($('#rc_nom').value) || 0))) : '';
+      if ($('#rc_cdate').value) patch.rcClosingAt = $('#rc_cdate').value;
+    } else {
+      patch.rcNominal = '';
+    }
+    rcUpdate($('#rc_id').value, patch);
+    if (closingNow){ RCF.st = 'closing'; renderRC(); }
+    dlgRC.close();
+  });
+  $('#rc_st').addEventListener('change', function(){ $('#rc_nomWrap').hidden = $('#rc_st').value !== 'closing'; });
+  $('#rcCancel').addEventListener('click', function(){ dlgRC.close(); });
+
+  $('#btnWA').addEventListener('click', function(){ $('#waText').value = TAB === 'dc' ? waDcText() : TAB === 'rc' ? waRcText() : waAuditText(); $('#waCopy').textContent = 'Salin'; dlgWA.showModal(); });
   $('#waClose').addEventListener('click', function(){ dlgWA.close(); });
   $('#waOpen').addEventListener('click', function(){ window.open('https://wa.me/?text=' + encodeURIComponent($('#waText').value), '_blank', 'noopener'); });
   $('#waCopy').addEventListener('click', function(){
@@ -1379,10 +1769,24 @@ function bind(){
     if (b.dataset.act === 'del') delRow(b.dataset.id);
   });
   $('#tbody').addEventListener('change', function(ev){
-    var s = ev.target.closest('select[data-act="status"]'); if (!s) return;
-    var r = ROWS.find(function(x){ return x.orderId === s.dataset.id; }); if (!r) return;
-    r.status = s.value; r.updatedAt = new Date().toISOString(); persist(); renderAll(); pushRow(r);
-    if (s.value === 'fake') toast('Lead dipindahkan ke tab Follow-up Lead.');
+    var s = ev.target.closest('select[data-act="status"]');
+    if (s){
+      var r = ROWS.find(function(x){ return x.orderId === s.dataset.id; }); if (!r) return;
+      var wasDirectClosing = r.status === 'real' && r.rcStatus === 'closing' && r.rcDirect;
+      if (s.value === 'real_closing'){
+        r.status = 'real';
+        rcUpdate(r.orderId, {rcStatus: 'closing', rcDirect: true});
+        toast('Lead ditandai Real, langsung Closing (tetap di tab Audit Lead, punya CS biasa).');
+        return;
+      }
+      if (wasDirectClosing){ r.rcStatus = ''; r.rcNominal = ''; r.rcClosingAt = ''; r.rcCatatan = ''; r.rcDirect = false; }
+      r.status = s.value; r.updatedAt = new Date().toISOString(); persist(); renderAll(); pushRow(r);
+      if (s.value === 'fake') toast('Lead dipindahkan ke tab Follow-up Lead.');
+      return;
+    }
+    var rc = ev.target.closest('select[data-act="rcStatus"]'); if (!rc) return;
+    rcUpdate(rc.dataset.id, {rcStatus: rc.value, rcDirect: rc.value === 'closing'});
+    if (rc.value !== 'closing') toast('Lead dipindahkan ke tab Closing Lead.');
   });
 
   $('#sClose').addEventListener('click', function(){ dlgSetup.close(); });
