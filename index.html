@@ -86,15 +86,6 @@ td select{border:1px solid var(--line);background:var(--panel);border-radius:8px
 .rowact{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .empty{padding:36px 12px;text-align:center;color:var(--muted)}
 .more{padding:10px;color:var(--muted);font-size:12.5px}
-.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
-.pager .pinfo{color:var(--muted);font-size:12.5px}
-.pager .pbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.pager button{min-width:34px;padding:6px 10px;border:1px solid var(--line);background:var(--panel);border-radius:8px;cursor:pointer;font-weight:600;color:inherit}
-.pager button:hover:not(:disabled){background:color-mix(in srgb,var(--brand) 8%,transparent)}
-.pager button.on{background:var(--brand);border-color:var(--brand);color:#fff}
-.pager button:disabled{opacity:.4;cursor:default}
-.pager .dots{color:var(--muted);padding:0 2px}
-
 
 table.lead{table-layout:fixed}
 table.lead th:nth-child(1),table.lead td:nth-child(1){width:74px}
@@ -401,7 +392,6 @@ dialog::backdrop{backdrop-filter:blur(2px)}
       <thead><tr><th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS DL</th><th>Follow-up</th><th>Penanganan</th><th></th></tr></thead>
       <tbody id="dcBody"></tbody>
     </table></div>
-    <div class="pager" id="dcPager" hidden></div>
   </section>
 </div>
 
@@ -419,7 +409,6 @@ dialog::backdrop{backdrop-filter:blur(2px)}
       <thead><tr><th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS DL</th><th>Status closing</th><th></th></tr></thead>
       <tbody id="rcBody"></tbody>
     </table></div>
-    <div class="pager" id="rcPager" hidden></div>
   </section>
 </div>
 
@@ -605,24 +594,32 @@ const TEXT_FIELDS = ['tanggal', 'hp', 'dcFollowUp', 'dcClosingAt', 'rcClosingAt'
 function getSheet_(name, head) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(name);
-  let created = false;
   if (!sh) {
-    created = true;
     sh = ss.insertSheet(name);
-    sh.appendRow(head);
+    sh.getRange(1, 1, 1, head.length).setValues([head]);
     sh.setFrozenRows(1);
-  }
-  // hanya menulis ulang header kalau sheet baru dibuat, atau jumlah
-  // kolomnya kurang dari yang dibutuhkan - header Indonesia yang sudah
-  // ada di file Excel TIDAK akan ditimpa selama jumlah kolomnya cocok.
-  if (created || sh.getLastColumn() < head.length) {
+    formatText_(sh, head);
+  } else if (sh.getLastColumn() < head.length) {
+    // header Indonesia yang sudah ada TIDAK ditimpa selama jumlah kolomnya cocok
     sh.getRange(1, 1, 1, head.length).setValues([head]);
   }
+  return sh;
+}
+
+// Format teks hanya dijalankan saat sheet baru dibuat (bukan tiap request),
+// supaya sinkron tidak lambat / timeout.
+function formatText_(sh, head) {
   TEXT_FIELDS.forEach(function (f) {
     const idx = head.indexOf(f);
     if (idx >= 0) sh.getRange(1, idx + 1, sh.getMaxRows(), 1).setNumberFormat('@');
   });
-  return sh;
+}
+
+// Jalankan SEKALI manual dari editor Apps Script (pilih fungsi ini > Run)
+// untuk sheet yang sudah ada, supaya nomor HP/tanggal tetap berformat teks.
+function formatSekali() {
+  formatText_(getSheet_(SHEET_DC, HEAD_DC), HEAD_DC);
+  formatText_(getSheet_(SHEET_RC, HEAD_RC), HEAD_RC);
 }
 
 function json_(o) {
@@ -1018,30 +1015,6 @@ function renderCS(rows){
 }
 
 var MAXROWS = 300;
-var PAGESIZE = 50, PG = {dc:1, rc:1}, PGSIG = {};
-function paginate(key, rows, sig){
-  if (PGSIG[key] !== sig){ PGSIG[key] = sig; PG[key] = 1; }
-  var pages = Math.max(1, Math.ceil(rows.length / PAGESIZE));
-  if (PG[key] > pages) PG[key] = pages;
-  if (PG[key] < 1) PG[key] = 1;
-  var p = PG[key], el = $('#' + key + 'Pager');
-  if (rows.length <= PAGESIZE){ el.hidden = true; el.innerHTML = ''; return rows; }
-  var nums = [], last = 0;
-  for (var i = 1; i <= pages; i++){
-    if (i === 1 || i === pages || Math.abs(i - p) <= 1){
-      if (last && i - last > 1) nums.push('<span class="dots">…</span>');
-      nums.push('<button type="button" data-pg="' + i + '"' + (i === p ? ' class="on" aria-current="page"' : '') + '>' + i + '</button>');
-      last = i;
-    }
-  }
-  var from = (p - 1) * PAGESIZE + 1, to = Math.min(p * PAGESIZE, rows.length);
-  el.hidden = false;
-  el.innerHTML = '<span class="pinfo">Menampilkan ' + from + '–' + to + ' dari ' + rows.length + ' lead</span>' +
-    '<div class="pbtns"><button type="button" data-pg="' + (p - 1) + '"' + (p === 1 ? ' disabled' : '') + '>‹ Sebelumnya</button>' + nums.join('') +
-    '<button type="button" data-pg="' + (p + 1) + '"' + (p === pages ? ' disabled' : '') + '>Berikutnya ›</button></div>';
-  return rows.slice(from - 1, to);
-}
-
 function renderTable(rows){
   rows = rows.filter(function(r){
     if (r.status === 'fake') return false;
@@ -1214,8 +1187,8 @@ function renderDC(){
   var ps = dcPeriodStats(all);
   $('#dcPeriod').innerHTML = '<b>' + esc(periodeLabel()) + '</b><span>' + ps.masuk + ' lead tidak real masuk</span><span>' + ps.handled + ' ditangani</span><span>' + ps.closing + ' closing · ' + rp(ps.omzet) + '</span>';
   $('#dcNote').textContent = rows.length + ' lead';
-  if (!rows.length){ $('#dcPager').hidden = true; $('#dcBody').innerHTML = '<tr><td colspan="8">' + empty(all.length ? 'Tidak ada lead yang cocok dengan filter.' : 'Belum ada lead berstatus Tidak real. Lead muncul di sini otomatis setelah statusnya diubah di tab Audit Lead.') + '</td></tr>'; return; }
-  $('#dcBody').innerHTML = paginate('dc', rows, JSON.stringify(DCF)).map(function(r){
+  if (!rows.length){ $('#dcBody').innerHTML = '<tr><td colspan="8">' + empty(all.length ? 'Tidak ada lead yang cocok dengan filter.' : 'Belum ada lead berstatus Tidak real. Lead muncul di sini otomatis setelah statusnya diubah di tab Audit Lead.') + '</td></tr>'; return; }
+  $('#dcBody').innerHTML = rows.slice(0, MAXROWS).map(function(r){
     var id = esc(r.orderId);
     return '<tr data-st="' + (dcLate(r) ? 'fake' : dcTone(r.dcStatus)) + '">' +
       '<td>' + esc(r.tanggal||'–') + '</td>' +
@@ -1227,7 +1200,7 @@ function renderDC(){
       '<td><select class="st-' + dcTone(r.dcStatus) + '" data-act="dcStatus" data-id="' + id + '" aria-label="Status penanganan">' + dcOpts(r.dcStatus||'') + '</select>' + (r.dcStatus === 'selesai' && (r.dcNominal || r.dcClosingAt) ? '<div class="hint">' + [r.dcClosingAt ? dm(r.dcClosingAt) : '', r.dcNominal ? rp(r.dcNominal) : ''].filter(Boolean).join(' · ') + '</div>' : '') + '</td>' +
       '<td><div class="rowact"><button class="btn sm" data-act="dcEdit" data-id="' + id + '">Kelola</button></div></td>' +
     '</tr>';
-  }).join('') ;
+  }).join('') + (rows.length > MAXROWS ? '<tr><td colspan="8" class="more">Menampilkan ' + MAXROWS + ' dari ' + rows.length + ' lead. Persempit filter atau ekspor CSV.</td></tr>' : '');
 }
 function openDC(id){
   var r = ROWS.find(function(x){ return x.orderId === id; }); if (!r) return;
@@ -1304,8 +1277,8 @@ function renderRC(){
     rk('k-real', 'closing', 'Omzet closing', rpK(omzet), done ? 'rata-rata ' + rp(Math.round(omzet / done)) + ' / closing' : 'belum ada closing');
   $('#rcSt').value = RCF.st;
   $('#rcNote').textContent = rows.length + ' lead';
-  if (!rows.length){ $('#rcPager').hidden = true; $('#rcBody').innerHTML = '<tr><td colspan="7">' + empty(all.length ? 'Tidak ada lead yang cocok dengan filter.' : 'Belum ada lead Real milik alur CS DL. Lead muncul di sini otomatis setelah statusnya diubah jadi "Real, belum closing" di tab Audit Lead, dan tetap di sini walau sudah closing. Lead yang ditandai "Real, sudah closing" langsung tetap di tab Audit Lead.') + '</td></tr>'; return; }
-  $('#rcBody').innerHTML = paginate('rc', rows, JSON.stringify(RCF)).map(function(r){
+  if (!rows.length){ $('#rcBody').innerHTML = '<tr><td colspan="7">' + empty(all.length ? 'Tidak ada lead yang cocok dengan filter.' : 'Belum ada lead Real milik alur CS DL. Lead muncul di sini otomatis setelah statusnya diubah jadi "Real, belum closing" di tab Audit Lead, dan tetap di sini walau sudah closing. Lead yang ditandai "Real, sudah closing" langsung tetap di tab Audit Lead.') + '</td></tr>'; return; }
+  $('#rcBody').innerHTML = rows.slice(0, MAXROWS).map(function(r){
     var id = esc(r.orderId);
     return '<tr data-st="' + rcCls(r.rcStatus) + '">' +
       '<td>' + esc(r.tanggal||'–') + '</td>' +
@@ -1316,7 +1289,7 @@ function renderRC(){
       '<td><select class="st-' + rcCls(r.rcStatus) + '" data-act="rcStatus" data-id="' + id + '" aria-label="Status closing">' + rcOpts(r.rcStatus||'') + '</select>' + (r.rcStatus === 'closing' && (r.rcNominal || r.rcClosingAt) ? '<div class="hint">' + [r.rcClosingAt ? dm(r.rcClosingAt) : '', r.rcNominal ? rp(r.rcNominal) : ''].filter(Boolean).join(' · ') + '</div>' : '') + '</td>' +
       '<td><div class="rowact"><button class="btn sm" data-act="rcEdit" data-id="' + id + '">Kelola</button></div></td>' +
     '</tr>';
-  }).join('') ;
+  }).join('') + (rows.length > MAXROWS ? '<tr><td colspan="7" class="more">Menampilkan ' + MAXROWS + ' dari ' + rows.length + ' lead. Persempit filter atau ekspor CSV.</td></tr>' : '');
 }
 function rcUpdate(id, patch){
   var r = ROWS.find(function(x){ return x.orderId === id; }); if (!r) return;
@@ -1461,7 +1434,7 @@ function refreshSync(){
 }
 function toast(msg){ var t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('show'); },3200); }
 async function api(method, body){
-  var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 25000);
+  var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 60000);
   try{
     var res = method === 'GET'
       ? await fetch(SET.url + (SET.url.indexOf('?')<0?'?':'&') + '_=' + Date.now(), {signal: ctrl.signal})
@@ -1798,14 +1771,6 @@ function bind(){
   $('#formAudit').addEventListener('submit', saveForm);
   $('#fCancel').addEventListener('click', function(){ dlgForm.close(); });
 
-  ['dc','rc'].forEach(function(k){
-    $('#' + k + 'Pager').addEventListener('click', function(ev){
-      var b = ev.target.closest('button[data-pg]'); if (!b || b.disabled) return;
-      PG[k] = +b.dataset.pg;
-      if (k === 'dc') renderDC(); else renderRC();
-      var t = $('#' + k + 'Body'); if (t) t.closest('.panel').scrollIntoView({behavior:'smooth', block:'start'});
-    });
-  });
   $('#tbody').addEventListener('click', function(ev){
     var b = ev.target.closest('button[data-act]'); if (!b) return;
     if (b.dataset.act === 'edit') openForm(b.dataset.id);
