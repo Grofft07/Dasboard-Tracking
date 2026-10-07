@@ -341,7 +341,6 @@ dialog::backdrop{backdrop-filter:blur(2px)}
     <select id="fStatus">
       <option value="ANY">Semua status</option>
       <option value="">Belum diperiksa</option>
-      <option value="real">Real</option>
       <option value="cek">Perlu dicek</option>
       <option value="flag">Ada indikasi mencurigakan</option>
     </select>
@@ -358,7 +357,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
 <section class="card panel">
   <div class="head"><h2>Rekap per CS</h2><span class="muted" id="csNote"></span></div>
   <div class="tw"><table>
-    <thead><tr><th>CS</th><th class="n">Total lead</th><th class="n">Real</th><th class="n">Tidak real</th><th class="n">Belum diperiksa</th><th>% Real</th></tr></thead>
+    <thead><tr><th>CS</th><th class="n">Total lead</th><th class="n">Real</th><th class="n">Tidak real</th><th class="n">Perlu dicek</th><th class="n">Belum diperiksa</th><th>% Real</th><th class="n">Closing</th><th class="n">% Closing</th></tr></thead>
     <tbody id="csBody"></tbody>
   </table></div>
 </section>
@@ -387,7 +386,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <section class="kpis" id="dcKpis" aria-label="Ringkasan Follow-up Lead"></section>
   <section class="card panel">
     <div class="head"><h2>Daftar Follow-up</h2><span class="muted" id="dcNote"></span></div>
-    <p class="hint" style="margin:-6px 0 10px">Berisi otomatis semua lead berstatus Tidak real. Lead yang berhasil closing tetap di sini dengan status Closing (pilih filter Closing atau Semua status untuk melihatnya). Lead di tab ini disimpan ke Google Sheet; tab Audit Lead (kecuali lead Real, lihat tab Closing Lead — kecuali yang ditandai closing langsung di Audit Lead) tersimpan di browser ini saja. Kalau statusnya diubah lagi di tab Audit Lead, lead keluar dari sini dan dihapus dari Sheet. Periode di atas hanya memengaruhi ringkasan periode dan Laporan WA; daftar tetap menampilkan semua lead.</p>
+    <p class="hint" style="margin:-6px 0 10px">Berisi otomatis semua lead berstatus Tidak real. Lead yang berhasil closing tetap di sini dengan status Closing (pilih filter Closing atau Semua status untuk melihatnya). Lead di tab ini disimpan ke Google Sheet. Kalau statusnya diubah lagi di tab Audit Lead, lead keluar dari sini dan dihapus dari Sheet. Periode di atas hanya memengaruhi ringkasan periode dan Laporan WA; daftar tetap menampilkan semua lead.</p>
     <div class="tw"><table class="dc">
       <thead><tr><th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS DL</th><th>Follow-up</th><th>Penanganan</th><th></th></tr></thead>
       <tbody id="dcBody"></tbody>
@@ -491,7 +490,8 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <div class="dlg">
     <h3>Pengaturan</h3>
     <div class="field span2"><label for="s_url">URL Web App Google Apps Script (/exec)</label><input id="s_url" placeholder="https://script.google.com/macros/s/.../exec"></div>
-    <p class="hint">Hubungkan ke Google Sheet supaya lead Tidak real dan lead Real milik alur CS DL (termasuk yang sudah closing) bisa dibuka dan dikelola dari browser lain. Lead yang closing langsung di tab Audit Lead (CS biasa) cukup tersimpan lokal.</p>
+    <div class="field span2" style="margin-top:10px"><label for="s_token">Token keamanan (harus sama dengan TOKEN di Code.gs)</label><input id="s_token" type="password" autocomplete="off" placeholder="kosongkan jika tidak memakai token"></div>
+    <p class="hint">Hubungkan ke Google Sheet supaya semua lead (audit, follow-up, dan closing) tersimpan permanen dan bisa dibuka dari browser lain.</p>
     <div class="field span2" style="margin-top:12px"><label for="s_role">Peran di browser ini</label>
       <select id="s_role"><option value="audit">Auditor (upload CSV &amp; audit lead)</option><option value="dc">Petugas Follow-up (kelola lead Tidak real)</option></select></div>
     <p class="hint">Auditor mengirim lead Tidak real dan lead Real milik alur CS DL (termasuk yang sudah closing) ke Sheet. Petugas Follow-up hanya melihat dan mengelola lead Tidak real, jadi tidak perlu upload CSV.</p>
@@ -527,9 +527,9 @@ dialog::backdrop{backdrop-filter:blur(2px)}
       </div>
       <div class="field span2"><label for="rc_cat">Catatan</label><textarea id="rc_cat" rows="3" placeholder="Mis: sudah transfer DP, tunggu pelunasan"></textarea></div>
     </div>
-    <div class="dfoot">
-      <button type="button" class="btn" id="rcCancel">Batal</button>
-      <button type="submit" class="btn primary">Simpan</button>
+    <div class="dfoot" style="justify-content:space-between">
+      <button type="button" class="btn sm" id="rcBack">Kembalikan ke Audit</button>
+      <div style="display:flex;gap:8px"><button type="button" class="btn" id="rcCancel">Batal</button><button type="submit" class="btn primary">Simpan</button></div>
     </div>
   </form>
 </dialog>
@@ -579,17 +579,23 @@ dialog::backdrop{backdrop-filter:blur(2px)}
 
 const SHEET_DC = 'Follow-up Lead';
 const SHEET_RC = 'Closing Lead';
+const SHEET_AU = 'Audit Lead';   // semua lead hasil upload CSV (belum diaudit / perlu dicek / closing langsung)
+// Token keamanan: isi teks rahasia di sini DAN di kolom Token pada Pengaturan dashboard. Kosong = tanpa pemeriksaan.
+const TOKEN = '';
 
 // urutan HARUS sama persis dengan urutan kolom di sheet (posisi kolom,
 // bukan teks headernya) - lihat file Excel untuk header tampilan aslinya.
 const HEAD_DC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
-                 'dcFollowUp', 'dcStatus', 'dcCatatan', 'dcNominal', 'dcClosingAt', 'dcPic'];
+                 'dcFollowUp', 'dcStatus', 'dcCatatan', 'dcNominal', 'dcClosingAt', 'dcPic', 'dcUpdatedAt'];
 const HEAD_RC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
                  'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcPic'];
 
 // kolom yang harus disimpan sebagai teks (supaya "081..." / tanggal string
 // tidak diubah otomatis jadi angka/tanggal oleh Google Sheets)
-const TEXT_FIELDS = ['tanggal', 'hp', 'dcFollowUp', 'dcClosingAt', 'rcClosingAt'];
+const HEAD_AU = ['orderId', 'tanggal', 'jam', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'produk', 'ip', 'catatanAsli',
+                 'status', 'catatan', 'metodeVerif', 'waktuVerif', 'updatedAt',
+                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcDirect'];
+const TEXT_FIELDS = ['jam', 'waktuVerif', 'updatedAt', 'tanggal', 'hp', 'dcFollowUp', 'dcClosingAt', 'rcClosingAt', 'dcUpdatedAt'];
 
 function getSheet_(name, head) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -600,8 +606,9 @@ function getSheet_(name, head) {
     sh.setFrozenRows(1);
     formatText_(sh, head);
   } else if (sh.getLastColumn() < head.length) {
-    // header Indonesia yang sudah ada TIDAK ditimpa selama jumlah kolomnya cocok
-    sh.getRange(1, 1, 1, head.length).setValues([head]);
+    // header yang sudah ada TIDAK ditimpa; hanya kolom baru di ujung yang ditambahkan
+    const last = Math.max(sh.getLastColumn(), 0);
+    sh.getRange(1, last + 1, 1, head.length - last).setValues([head.slice(last)]);
   }
   return sh;
 }
@@ -620,6 +627,7 @@ function formatText_(sh, head) {
 function formatSekali() {
   formatText_(getSheet_(SHEET_DC, HEAD_DC), HEAD_DC);
   formatText_(getSheet_(SHEET_RC, HEAD_RC), HEAD_RC);
+  formatText_(getSheet_(SHEET_AU, HEAD_AU), HEAD_AU);
 }
 
 function json_(o) {
@@ -632,13 +640,18 @@ function readRows_(sh, head) {
   for (let i = 1; i < vals.length; i++) {
     if (!vals[i][0]) continue; // lewati baris kosong / baris "contoh"
     const o = {};
-    head.forEach(function (h, j) { o[h] = String(vals[i][j] == null ? '' : vals[i][j]); });
+    head.forEach(function (h, j) {
+      let v = vals[i][j];
+      if (v instanceof Date) v = Utilities.formatDate(v, Session.getScriptTimeZone(), ['tanggal', 'dcFollowUp', 'dcClosingAt', 'rcClosingAt'].indexOf(h) >= 0 ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm:ss");
+      o[h] = String(v == null ? '' : v);
+    });
     rows.push(o);
   }
   return rows;
 }
 
 function sheetFor_(kind) {
+  if (kind === 'au') return { sh: getSheet_(SHEET_AU, HEAD_AU), head: HEAD_AU };
   return kind === 'rc'
     ? { sh: getSheet_(SHEET_RC, HEAD_RC), head: HEAD_RC }
     : { sh: getSheet_(SHEET_DC, HEAD_DC), head: HEAD_DC };
@@ -661,6 +674,25 @@ function upsert_(kind, row) {
   }
 }
 
+// Kirim banyak baris sekaligus (1 request) - jauh lebih cepat untuk upload CSV besar.
+function upsertMany_(kind, rows) {
+  const { sh, head } = sheetFor_(kind);
+  const pos = {};
+  idColumn_(sh).forEach(function (v, i) { if (i > 0 && v !== '') pos[v] = i + 1; });
+  const fresh = [];
+  rows.forEach(function (row) {
+    const line = head.map(function (h) { return row[h] === undefined ? '' : row[h]; });
+    const key = String(row.orderId), p = pos[key];
+    if (p > 0) sh.getRange(p, 1, 1, head.length).setValues([line]);
+    else if (p === undefined) { fresh.push(line); pos[key] = -1; }
+  });
+  if (fresh.length) {
+    const start = Math.max(sh.getLastRow(), 1) + 1;
+    if (start + fresh.length - 1 > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), start + fresh.length - 1 - sh.getMaxRows());
+    sh.getRange(start, 1, fresh.length, head.length).setValues(fresh);
+  }
+}
+
 function delete_(kind, orderId) {
   const { sh } = sheetFor_(kind);
   const ids = idColumn_(sh);
@@ -680,9 +712,11 @@ function move_(from, to, row) {
 }
 
 function doGet(e) {
+  if (TOKEN && (!e || !e.parameter || e.parameter.token !== TOKEN)) return json_({ ok: false, error: 'Token salah' });
   const dc = readRows_(getSheet_(SHEET_DC, HEAD_DC), HEAD_DC);
   const rc = readRows_(getSheet_(SHEET_RC, HEAD_RC), HEAD_RC);
-  return json_({ ok: true, dc: dc, rc: rc });
+  const au = readRows_(getSheet_(SHEET_AU, HEAD_AU), HEAD_AU);
+  return json_({ ok: true, dc: dc, rc: rc, au: au });
 }
 
 function doPost(e) {
@@ -690,10 +724,13 @@ function doPost(e) {
   lock.waitLock(30000);
   try {
     const body = JSON.parse(e.postData.contents);
+    if (TOKEN && body.token !== TOKEN) throw new Error('Token salah');
     if (body.action === 'upsert') {
       upsert_(body.kind, body.row);
     } else if (body.action === 'delete') {
       delete_(body.kind, body.id);
+    } else if (body.action === 'batch') {
+      upsertMany_(body.kind, body.rows);
     } else if (body.action === 'move') {
       move_(body.from, body.to, body.row);
     } else {
@@ -719,6 +756,16 @@ var esc = function(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(
 var pad = function(n){ return String(n).padStart(2,'0'); };
 var ymd = function(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
 var uid = function(){ return 'M' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); };
+function csvCell(v){ var t = String(v==null?'':v); if (/^[=+\-@\t\r]/.test(t) && !/^[+\-]?[\d\s().,-]+$/.test(t)) t = "'" + t; return '"' + t.replace(/"/g,'""') + '"'; }
+function autoId(o){ var t = [o.name,o.phone,o.created_at,o.address].join('|'), h = 5381; for (var i=0;i<t.length;i++) h = ((h*33) ^ t.charCodeAt(i)) >>> 0; return 'X' + h.toString(36); }
+function normHp(h){ var d = String(h||'').replace(/\D/g,''); if (d.indexOf('62') === 0) d = '0' + d.slice(2); else if (d.charAt(0) === '8') d = '0' + d; return d; }
+function normDate(v){
+  v = String(v||''); if (!v || /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  var m = v.match(/^[A-Za-z]{3} ([A-Za-z]{3}) (\d{2}) (\d{4})/), i = m ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(m[1]) : -1;
+  if (i >= 0) return m[3] + '-' + pad(i + 1) + '-' + m[2];
+  m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (m) return m[3] + '-' + m[2] + '-' + m[1];
+  return v;
+}
 function load(k, def){ try{ var v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; }catch(e){ return def; } }
 function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
@@ -727,7 +774,7 @@ var DIRTY = new Set(load(LS.dirty, []));
 var DEL   = new Set(load(LS.del, []));
 var REMOTE = load('audit_lead_remote', {}); /* {orderId: 'dc'|'rc'} - sheet & kind tempat lead ini tersimpan */
 if (Array.isArray(REMOTE)) REMOTE = {}; /* migrasi dari format lama (Set of ids) - paksa sinkron ulang sekali */
-var LOCAL_ONLY = ['jam','produk','ip','catatanAsli','metodeVerif','waktuVerif','auditor','updatedAt','dcUpdatedAt']; /* kolom yang tidak ada di Code.gs baru, disimpan lokal saja */
+var LOCAL_ONLY = ['jam','produk','ip','catatanAsli','metodeVerif','waktuVerif','auditor','updatedAt']; /* kolom yang tidak ada di Code.gs baru, disimpan lokal saja */
 var SET   = Object.assign({url:'', theme:''}, load(LS.set, {}));
 var F     = {day: ymd(new Date()), cs:'', status:'ANY', q:''}; /* tab Audit Lead: satu hari */
 var PS    = {period:'today', from:'', to:''};               /* tab Follow-up Lead: periode laporan */
@@ -739,6 +786,8 @@ function parseCSV(text){
   var rows = [], row = [], field = '', inQ = false;
   text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  var nl0 = text.indexOf('\n'), first = nl0 < 0 ? text : text.slice(0, nl0);
+  var DELIM = first.split(';').length > first.split(',').length ? ';' : ','; /* dukung CSV Excel locale Indonesia (;) */
   for (var i = 0; i < text.length; i++){
     var c = text[i];
     if (inQ){
@@ -746,7 +795,7 @@ function parseCSV(text){
       else field += c;
     } else {
       if (c === '"') inQ = true;
-      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === DELIM) { row.push(field); field = ''; }
       else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
       else field += c;
     }
@@ -755,14 +804,20 @@ function parseCSV(text){
   return rows.filter(function(r){ return r.some(function(v){ return v !== ''; }); });
 }
 function parseCreatedAt(s){
-  var m = String(s||'').match(/(\d{2})-(\d{2})-(\d{4})\s*-\s*(\d{2}):(\d{2})/);
-  return m ? {date: m[3]+'-'+m[2]+'-'+m[1], jam: m[4]+':'+m[5]} : {date:'', jam:''};
+  s = String(s||'');
+  var m = s.match(/(\d{2})-(\d{2})-(\d{4})\s*-?\s*(\d{2}):(\d{2})/);
+  if (m) return {date: m[3]+'-'+m[2]+'-'+m[1], jam: m[4]+':'+m[5]};
+  m = s.match(/(\d{4})-(\d{2})-(\d{2})(?:[ T]+(\d{2}):(\d{2}))?/);
+  if (m) return {date: m[1]+'-'+m[2]+'-'+m[3], jam: m[4] ? m[4]+':'+m[5] : ''};
+  m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (m) return {date: m[3]+'-'+pad(m[2])+'-'+pad(m[1]), jam: m[4] ? pad(m[4])+':'+m[5] : ''};
+  return {date:'', jam:''};
 }
 function toLead(o){
   var addr = [o.address, o.subdistrict, o.city, o.province].filter(function(v){ return v && v.trim(); }).join(', ');
   var dt = parseCreatedAt(o.created_at);
   return {
-    orderId: String(o.order_id || '').trim() || uid(),
+    orderId: String(o.order_id || '').trim() || autoId(o),
     tanggal: dt.date, jam: dt.jam,
     nama: (o.name || '').trim(), hp: (o.phone || '').trim(), alamat: addr,
     cs: (o.handled_by || '').trim(), sumber: (o.utm_source || '').trim(), produk: (o.product || '').trim(),
@@ -776,39 +831,40 @@ function importCSV(text){
   var need = ['order_id','name','phone','address','created_at','handled_by'];
   var missing = need.filter(function(k){ return head.indexOf(k) < 0; });
   if (missing.length) throw new Error('Kolom tidak ditemukan: ' + missing.join(', '));
-  var added = 0, updated = 0;
+  var added = 0, updated = 0, nodate = 0;
   for (var r = 1; r < table.length; r++){
     var o = {}; head.forEach(function(h, i){ o[h] = table[r][i]; });
     if (!o.order_id && !o.name) continue;
-    var lead = toLead(o);
+    var lead = toLead(o); if (!lead.tanggal) nodate++;
     var idx = ROWS.findIndex(function(x){ return x.orderId === lead.orderId; });
     if (idx >= 0){
       var old = ROWS[idx];
-      ROWS[idx] = Object.assign({}, lead, {status: old.status||'', auditor: old.auditor||'', catatan: old.catatan||'', metodeVerif: old.metodeVerif||'', waktuVerif: old.waktuVerif||'', updatedAt: old.updatedAt||'', dcStatus: old.dcStatus||'', dcPic: old.dcPic||'', dcFollowUp: old.dcFollowUp||'', dcCatatan: old.dcCatatan||'', dcUpdatedAt: old.dcUpdatedAt||'', dcNominal: old.dcNominal||'', dcClosingAt: old.dcClosingAt||'', rcStatus: old.rcStatus||'', rcPic: old.rcPic||'', rcNominal: old.rcNominal||'', rcClosingAt: old.rcClosingAt||'', rcCatatan: old.rcCatatan||''});
+      ROWS[idx] = Object.assign({}, lead, {status: old.status||'', auditor: old.auditor||'', catatan: old.catatan||'', metodeVerif: old.metodeVerif||'', waktuVerif: old.waktuVerif||'', updatedAt: old.updatedAt||'', dcStatus: old.dcStatus||'', dcPic: old.dcPic||'', dcFollowUp: old.dcFollowUp||'', dcCatatan: old.dcCatatan||'', dcUpdatedAt: old.dcUpdatedAt||'', dcNominal: old.dcNominal||'', dcClosingAt: old.dcClosingAt||'', rcStatus: old.rcStatus||'', rcPic: old.rcPic||'', rcNominal: old.rcNominal||'', rcClosingAt: old.rcClosingAt||'', rcCatatan: old.rcCatatan||'', rcDirect: !!old.rcDirect});
+      if (syncable(ROWS[idx]) && ['nama','hp','alamat','cs','sumber','tanggal'].some(function(k){ return (old[k]||'') !== (ROWS[idx][k]||''); })) DIRTY.add(lead.orderId);
       updated++;
     } else {
       ROWS.push(Object.assign({}, lead, {status:'', auditor:'', catatan:'', metodeVerif:'', waktuVerif:'', updatedAt:'', dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:'', rcStatus:'', rcPic:'', rcNominal:'', rcClosingAt:'', rcCatatan:''}));
-      added++;
+      added++; DIRTY.add(lead.orderId);
     }
   }
   persist();
-  return {added: added, updated: updated};
+  return {added: added, updated: updated, nodate: nodate};
 }
 
 /* ---------- indikasi mencurigakan ---------- */
 function buildDupIndex(){
   var hp = {}, ip = {};
   ROWS.forEach(function(r){
-    if (r.hp) hp[r.hp] = (hp[r.hp]||0) + 1;
+    if (r.hp){ var k = normHp(r.hp); hp[k] = (hp[k]||0) + 1; }
     if (r.ip) ip[r.ip] = (ip[r.ip]||0) + 1;
   });
   return {hp: hp, ip: ip};
 }
 function flagsFor(r, idx){
   var f = [];
-  if (r.hp && idx.hp[r.hp] > 1) f.push({t:'HP dobel ×'+idx.hp[r.hp], bad:false});
+  if (r.hp && idx.hp[normHp(r.hp)] > 1) f.push({t:'HP dobel ×'+idx.hp[normHp(r.hp)], bad:false});
   if (r.ip && idx.ip[r.ip] > 2) f.push({t:'IP dobel ×'+idx.ip[r.ip], bad:true});
-  if (/test/i.test(r.nama)) f.push({t:'Nama "testing"', bad:true});
+  if (/\btest(ing)?\b/i.test(r.nama)) f.push({t:'Nama "testing"', bad:true});
   var clean = (r.alamat||'').replace(/[^a-zA-Z0-9]/g,'');
   if (!clean || clean.length < 8) f.push({t:'Alamat tidak lengkap', bad:false});
   return f;
@@ -955,6 +1011,20 @@ function filtered(skipStatus){
 }
 
 /* ---------- render ---------- */
+var PAGESIZE = 25, PG = {au:1, dc:1, rc:1}, PGSIG = {};
+function isClosed(r){ return (r.status === 'real' && r.rcStatus === 'closing') || (r.status === 'fake' && r.dcStatus === 'selesai'); }
+function pageSlice(key, arr){
+  var sig = JSON.stringify(key === 'au' ? F : key === 'dc' ? DCF : RCF);
+  if (PGSIG[key] !== sig){ PGSIG[key] = sig; PG[key] = 1; } /* filter berubah -> kembali ke halaman 1 */
+  var pages = Math.max(1, Math.ceil(arr.length / PAGESIZE));
+  PG[key] = Math.min(Math.max(PG[key], 1), pages);
+  return arr.slice((PG[key] - 1) * PAGESIZE, PG[key] * PAGESIZE);
+}
+function pagerRow(key, total, cols){
+  var pages = Math.ceil(total / PAGESIZE); if (pages < 2) return '';
+  var p = PG[key];
+  return '<tr><td colspan="' + cols + '" class="more"><div style="display:flex;gap:10px;align-items:center;justify-content:center"><button type="button" class="btn sm" data-pg="' + key + '" data-dir="-1"' + (p <= 1 ? ' disabled' : '') + '>‹ Sebelumnya</button><span>Halaman ' + p + ' dari ' + pages + ' · ' + total + ' lead</span><button type="button" class="btn sm" data-pg="' + key + '" data-dir="1"' + (p >= pages ? ' disabled' : '') + '>Berikutnya ›</button></div></td></tr>';
+}
 function empty(msg){ return '<div class="empty">' + msg + '</div>'; }
 
 function renderSeg(el, title, meta, segs, key){
@@ -969,23 +1039,24 @@ function kpiBtn(cls, attr, label, val, sub, on){
   return '<button type="button" class="card kpi ' + cls + (on ? ' on' : '') + '" ' + attr + ' aria-pressed="' + !!on + '"><div class="lbl">' + label + '</div><div class="val">' + val + '</div><div class="sub">' + sub + '</div></button>';
 }
 function renderKPI(rows){
-  var real=0, fake=0, cek=0, blank=0, flagged=0, idx = buildDupIndex();
+  var real=0, fake=0, cek=0, blank=0, flagged=0, closed=0, idx = buildDupIndex();
   rows.forEach(function(r){
     if (r.status === 'real') real++; else if (r.status === 'fake') fake++; else if (r.status === 'cek') cek++; else blank++;
-    if (flagsFor(r, idx).length) flagged++;
+    if (flagsFor(r, idx).length) flagged++; if (isClosed(r)) closed++;
   });
   var n = rows.length, on = function(f){ return F.status === f; };
   var pf = function(x){ return (n ? x / n * 100 : 0).toFixed(1).replace('.', ','); };
   $('#kpis').innerHTML =
-    kpiBtn('k-real hero', 'data-f="real"', 'Lead real', n ? pf(real) + '%' : '–', real + ' dari ' + n + ' lead diaudit', on('real')) +
+    kpiBtn('k-real hero', 'data-goto="rc"', 'Lead real', n ? pf(real) + '%' : '–', real + ' dari ' + n + ' lead · klik untuk buka tab Closing Lead', false) +
     kpiBtn('k-total', 'data-f="ANY"', 'Total lead', n, 'pada tanggal ini', false) +
     kpiBtn('k-fake', 'data-goto="dc"', 'Tidak real', fake, pf(fake) + '% · buka tab Follow-up Lead', false) +
+    kpiBtn('k-real', 'data-goto="rc"', 'Closing rate', n ? pf(closed) + '%' : '–', closed + ' closing dari ' + n + ' lead', false) +
     kpiBtn('k-cek', 'data-f="cek"', 'Perlu dicek', cek, 'ditandai perlu ditinjau lagi', on('cek')) +
     kpiBtn('k-blank', 'data-f=""', 'Belum diperiksa', blank, 'belum diberi status', on('')) +
     kpiBtn('k-flag', 'data-f="flag"', 'Ada indikasi', flagged, 'HP/IP dobel, nama testing, alamat tak lengkap', on('flag'));
   var done = real + fake;
   renderSeg($('#segAudit'), 'Progres audit', n ? done + ' dari ' + n + ' selesai (' + Math.round(done / n * 100) + '%)' : 'belum ada lead pada tanggal ini',
-    [{l:'Real', n:real, c:'real', f:'real'}, {l:'Tidak real', n:fake, c:'fake', g:'dc'}, {l:'Perlu dicek', n:cek, c:'cek', f:'cek'}, {l:'Belum diperiksa', n:blank, c:'blank', f:''}], 'data-f');
+    [{l:'Real', n:real, c:'real', g:'rc'}, {l:'Tidak real', n:fake, c:'fake', g:'dc'}, {l:'Perlu dicek', n:cek, c:'cek', f:'cek'}, {l:'Belum diperiksa', n:blank, c:'blank', f:''}], 'data-f');
 }
 
 function renderPending(){
@@ -1001,16 +1072,16 @@ function renderCS(rows){
   var g = {};
   rows.forEach(function(r){
     var key = r.cs || '(tanpa CS)';
-    var o = g[key] || (g[key] = {cs:key, total:0, real:0, fake:0, blank:0});
-    o.total++; if (r.status==='real') o.real++; else if (r.status==='fake') o.fake++; else if (r.status==='') o.blank++;
+    var o = g[key] || (g[key] = {cs:key, total:0, cl:0, real:0, fake:0, cek:0, blank:0});
+    o.total++; if (isClosed(r)) o.cl++; if (r.status==='real') o.real++; else if (r.status==='fake') o.fake++; else if (r.status==='cek') o.cek++; else if (r.status==='') o.blank++;
   });
   var list = Object.keys(g).map(function(k){ return g[k]; }).sort(function(a,b){ return b.total - a.total; });
   $('#csNote').textContent = list.length ? list.length + ' CS' : '';
-  if (!list.length){ $('#csBody').innerHTML = '<tr><td colspan="6">' + empty('Belum ada data.') + '</td></tr>'; return; }
+  if (!list.length){ $('#csBody').innerHTML = '<tr><td colspan="9">' + empty('Belum ada data.') + '</td></tr>'; return; }
   $('#csBody').innerHTML = list.map(function(o){
     var pct = o.total ? o.real/o.total*100 : 0;
-    return '<tr><td><strong>' + esc(o.cs) + '</strong></td><td class="n">' + o.total + '</td><td class="n">' + o.real + '</td><td class="n">' + o.fake + '</td><td class="n">' + o.blank + '</td>' +
-      '<td><div style="display:flex;flex-direction:column;gap:4px;min-width:90px"><span>' + pct.toFixed(1).replace('.',',') + '%</span><div class="bar"><b style="width:' + Math.min(100,pct) + '%"></b></div></div></td></tr>';
+    return '<tr><td><strong>' + esc(o.cs) + '</strong></td><td class="n">' + o.total + '</td><td class="n">' + o.real + '</td><td class="n">' + o.fake + '</td><td class="n">' + o.cek + '</td><td class="n">' + o.blank + '</td>' +
+      '<td><div style="display:flex;flex-direction:column;gap:4px;min-width:90px"><span>' + pct.toFixed(1).replace('.',',') + '%</span><div class="bar"><b style="width:' + Math.min(100,pct) + '%"></b></div></div></td><td class="n">' + o.cl + '</td><td class="n">' + pctS(o.cl, o.total) + '</td></tr>';
   }).join('');
 }
 
@@ -1025,7 +1096,7 @@ function renderTable(rows){
   $('#detNote').textContent = rows.length + ' lead';
   if (!sorted.length){ $('#tbody').innerHTML = '<tr><td colspan="11">' + empty(ROWS.length ? 'Tidak ada lead yang perlu dilihat pada tanggal ini. Lead Tidak real ada di tab Follow-up Lead, lead Real (kecuali yang closing langsung di sini) ada di tab Closing Lead.' : 'Belum ada data. Klik Upload CSV untuk mulai.') + '</td></tr>'; return; }
   var idx = buildDupIndex();
-  var shown = sorted.slice(0, MAXROWS);
+  var shown = pageSlice('au', sorted);
   $('#tbody').innerHTML = shown.map(function(r){
     var fl = flagsFor(r, idx);
     var flHtml = fl.length ? '<div class="flags">' + fl.map(function(f){ return '<span class="flag' + (f.bad?' bad':'') + '">' + esc(f.t) + '</span>'; }).join('') + '</div>' : '<span class="muted">–</span>';
@@ -1049,7 +1120,7 @@ function renderTable(rows){
         : '<span class="muted">–</span>') + '</td>' +
       '<td><div class="rowact"><button class="btn sm" data-act="edit" data-id="' + esc(r.orderId) + '">Detail</button><button class="btn sm danger" data-act="del" data-id="' + esc(r.orderId) + '">Hapus</button></div></td>' +
     '</tr>';
-  }).join('') + (sorted.length > MAXROWS ? '<tr><td colspan="11" class="more">Menampilkan ' + MAXROWS + ' lead terbaru dari ' + sorted.length + '. Persempit filter atau ekspor CSV untuk semuanya.</td></tr>' : '');
+  }).join('') + pagerRow('au', sorted.length, 11);
 }
 
 function csNames(){ var s={}; ROWS.forEach(function(r){ if (r.cs) s[r.cs]=1; }); return Object.keys(s).sort(); }
@@ -1083,8 +1154,9 @@ function savePic(){
     });
   });
   persist(); renderAll(); $('#dlgPic').close();
-  toast('Nama CS DL diganti untuk ' + changed.length + ' lead.');
-  changed.forEach(function(r){ pushRow(r); });
+  var uniq = changed.filter(function(r, i){ return changed.indexOf(r) === i; });
+  toast('Nama CS DL diganti untuk ' + uniq.length + ' lead.');
+  pushMany(uniq.filter(syncable));
 }
 function renderCsFilter(){
   var names = csNames(), sel = $('#fCs');
@@ -1114,7 +1186,7 @@ function dcDone(r){ return r.dcStatus === 'selesai' || r.dcStatus === 'batal' ||
 function dcLate(r){ return !!r.dcFollowUp && r.dcFollowUp < ymd(new Date()) && !dcDone(r); }
 function waLink(hp){
   var d = String(hp||'').replace(/\D/g,''); if (!d) return '';
-  if (d.charAt(0) === '0') d = '62' + d.slice(1);
+  if (d.charAt(0) === '0') d = '62' + d.slice(1); else if (d.charAt(0) === '8') d = '62' + d;
   return '<a class="wa" href="https://wa.me/' + d + '" target="_blank" rel="noopener">WA</a>';
 }
 function dcData(){
@@ -1188,7 +1260,7 @@ function renderDC(){
   $('#dcPeriod').innerHTML = '<b>' + esc(periodeLabel()) + '</b><span>' + ps.masuk + ' lead tidak real masuk</span><span>' + ps.handled + ' ditangani</span><span>' + ps.closing + ' closing · ' + rp(ps.omzet) + '</span>';
   $('#dcNote').textContent = rows.length + ' lead';
   if (!rows.length){ $('#dcBody').innerHTML = '<tr><td colspan="8">' + empty(all.length ? 'Tidak ada lead yang cocok dengan filter.' : 'Belum ada lead berstatus Tidak real. Lead muncul di sini otomatis setelah statusnya diubah di tab Audit Lead.') + '</td></tr>'; return; }
-  $('#dcBody').innerHTML = rows.slice(0, MAXROWS).map(function(r){
+  $('#dcBody').innerHTML = pageSlice('dc', rows).map(function(r){
     var id = esc(r.orderId);
     return '<tr data-st="' + (dcLate(r) ? 'fake' : dcTone(r.dcStatus)) + '">' +
       '<td>' + esc(r.tanggal||'–') + '</td>' +
@@ -1200,7 +1272,7 @@ function renderDC(){
       '<td><select class="st-' + dcTone(r.dcStatus) + '" data-act="dcStatus" data-id="' + id + '" aria-label="Status penanganan">' + dcOpts(r.dcStatus||'') + '</select>' + (r.dcStatus === 'selesai' && (r.dcNominal || r.dcClosingAt) ? '<div class="hint">' + [r.dcClosingAt ? dm(r.dcClosingAt) : '', r.dcNominal ? rp(r.dcNominal) : ''].filter(Boolean).join(' · ') + '</div>' : '') + '</td>' +
       '<td><div class="rowact"><button class="btn sm" data-act="dcEdit" data-id="' + id + '">Kelola</button></div></td>' +
     '</tr>';
-  }).join('') + (rows.length > MAXROWS ? '<tr><td colspan="8" class="more">Menampilkan ' + MAXROWS + ' dari ' + rows.length + ' lead. Persempit filter atau ekspor CSV.</td></tr>' : '');
+  }).join('') + pagerRow('dc', rows.length, 8);
 }
 function openDC(id){
   var r = ROWS.find(function(x){ return x.orderId === id; }); if (!r) return;
@@ -1226,7 +1298,7 @@ function exportDC(){
   var head = ['Tanggal','Nama','HP','Alamat','CS DL','Sumber','Catatan Audit','Follow-up','Status Penanganan','Catatan Penanganan','Nominal Closing','Tanggal Closing'];
   var lines = [head].concat(rows.map(function(r){
     return [r.tanggal, r.nama, r.hp, r.alamat, r.dcPic, r.sumber, r.catatan, r.dcFollowUp, DCLABEL[r.dcStatus||''], r.dcCatatan, r.dcNominal, r.dcClosingAt];
-  })).map(function(a){ return a.map(function(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }).join(','); });
+  })).map(function(a){ return a.map(csvCell).join(','); });
   var blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'follow-up-lead-' + ymd(new Date()) + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
@@ -1278,7 +1350,7 @@ function renderRC(){
   $('#rcSt').value = RCF.st;
   $('#rcNote').textContent = rows.length + ' lead';
   if (!rows.length){ $('#rcBody').innerHTML = '<tr><td colspan="7">' + empty(all.length ? 'Tidak ada lead yang cocok dengan filter.' : 'Belum ada lead Real milik alur CS DL. Lead muncul di sini otomatis setelah statusnya diubah jadi "Real, belum closing" di tab Audit Lead, dan tetap di sini walau sudah closing. Lead yang ditandai "Real, sudah closing" langsung tetap di tab Audit Lead.') + '</td></tr>'; return; }
-  $('#rcBody').innerHTML = rows.slice(0, MAXROWS).map(function(r){
+  $('#rcBody').innerHTML = pageSlice('rc', rows).map(function(r){
     var id = esc(r.orderId);
     return '<tr data-st="' + rcCls(r.rcStatus) + '">' +
       '<td>' + esc(r.tanggal||'–') + '</td>' +
@@ -1289,7 +1361,7 @@ function renderRC(){
       '<td><select class="st-' + rcCls(r.rcStatus) + '" data-act="rcStatus" data-id="' + id + '" aria-label="Status closing">' + rcOpts(r.rcStatus||'') + '</select>' + (r.rcStatus === 'closing' && (r.rcNominal || r.rcClosingAt) ? '<div class="hint">' + [r.rcClosingAt ? dm(r.rcClosingAt) : '', r.rcNominal ? rp(r.rcNominal) : ''].filter(Boolean).join(' · ') + '</div>' : '') + '</td>' +
       '<td><div class="rowact"><button class="btn sm" data-act="rcEdit" data-id="' + id + '">Kelola</button></div></td>' +
     '</tr>';
-  }).join('') + (rows.length > MAXROWS ? '<tr><td colspan="7" class="more">Menampilkan ' + MAXROWS + ' dari ' + rows.length + ' lead. Persempit filter atau ekspor CSV.</td></tr>' : '');
+  }).join('') + pagerRow('rc', rows.length, 7);
 }
 function rcUpdate(id, patch){
   var r = ROWS.find(function(x){ return x.orderId === id; }); if (!r) return;
@@ -1320,7 +1392,7 @@ function exportRC(){
   var head = ['Tanggal','Nama','HP','Alamat','CS DL','Sumber','Status Closing','Catatan','Nominal Closing','Tanggal Closing'];
   var lines = [head].concat(rows.map(function(r){
     return [r.tanggal, r.nama, r.hp, r.alamat, r.rcPic, r.sumber, RCLABEL[r.rcStatus||''], r.rcCatatan, r.rcNominal, r.rcClosingAt];
-  })).map(function(a){ return a.map(function(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }).join(','); });
+  })).map(function(a){ return a.map(csvCell).join(','); });
   var blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'closing-lead-' + ymd(new Date()) + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
@@ -1333,7 +1405,7 @@ function waRcText(){
   var run = q.filter(rcRun).length;
   var batal = q.filter(function(r){ return r.rcStatus === 'batal'; }).length;
   var omzet = closedAll.reduce(function(a, r){ return a + (Number(r.rcNominal) || 0); }, 0);
-  var totalReal = q.length + closedAll.length;
+  var totalReal = q.length; /* q sudah termasuk yang closing */
   var DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
   return ['*LAPORAN CLOSING LEAD (REAL)*',
     'Dibuat ' + waNow(),
@@ -1388,7 +1460,8 @@ function waAuditText(){
     'Tidak real: ' + c.fake + ' (' + pctS(c.fake, rows.length) + ')',
     'Perlu dicek: ' + c.cek,
     'Belum diperiksa: ' + c.blank,
-    'Ada indikasi: ' + c.flag];
+    'Ada indikasi: ' + c.flag,
+    'Closing rate: ' + rows.filter(isClosed).length + ' (' + pctS(rows.filter(isClosed).length, rows.length) + ')'];
   if (list.length){
     L.push(DIV, '*Rekap per CS*');
     list.slice(0, 15).forEach(function(o){
@@ -1437,16 +1510,16 @@ async function api(method, body){
   var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 60000);
   try{
     var res = method === 'GET'
-      ? await fetch(SET.url + (SET.url.indexOf('?')<0?'?':'&') + '_=' + Date.now(), {signal: ctrl.signal})
-      : await fetch(SET.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body), signal: ctrl.signal});
+      ? await fetch(SET.url + (SET.url.indexOf('?')<0?'?':'&') + '_=' + Date.now() + '&token=' + encodeURIComponent(SET.token||''), {signal: ctrl.signal})
+      : await fetch(SET.url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({token: SET.token||''}, body)), signal: ctrl.signal});
     var j = await res.json();
     if (!j.ok) throw new Error(j.error || 'Respons tidak valid');
     return j;
   } finally { clearTimeout(timer); }
 }
 /* Disimpan ke Sheet: lead Tidak real -> sheet "Follow-up Lead" (kind 'dc'), lead Real milik CS DL -> sheet "Closing Lead" (kind 'rc'), tetap di sheet ini walau sudah closing. Lead Real yang closing langsung dari Audit Lead (rcDirect, milik CS biasa) tidak dikirim ke Sheet, cukup lokal di tab Audit Lead. */
-function syncable(r){ return r.status === 'fake' || (r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect)); }
-function kindOf(r){ return r.status === 'fake' ? 'dc' : (r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect) ? 'rc' : null); }
+function syncable(r){ return !!r; } /* sekarang SEMUA lead disimpan ke Sheet */
+function kindOf(r){ return r.status === 'fake' ? 'dc' : (r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect) ? 'rc' : 'au'); } /* dc=Follow-up, rc=Closing, au=Audit Lead */
 function part(){ return SET.role === 'dc' ? 'dc' : 'audit'; }
 /* baris yang sedang diedit lokal: bagian milik sendiri dipertahankan, bagian milik peran lain diambil dari Sheet */
 function mergeParts(local, srv){
@@ -1457,7 +1530,7 @@ function mergeParts(local, srv){
 /* Code.gs baru cuma simpan sebagian kolom per sheet - petakan baris lokal -> baris yang dikirim */
 function toDcRow(r){
   return {orderId:r.orderId, tanggal:r.tanggal||'', nama:r.nama||'', hp:r.hp||'', alamat:r.alamat||'', cs:r.cs||'', sumber:r.sumber||'',
-    catatanAudit:r.catatan||'', dcFollowUp:r.dcFollowUp||'', dcStatus:r.dcStatus||'', dcCatatan:r.dcCatatan||'', dcNominal:r.dcNominal||'', dcClosingAt:r.dcClosingAt||'', dcPic:r.dcPic||''};
+    catatanAudit:r.catatan||'', dcFollowUp:r.dcFollowUp||'', dcStatus:r.dcStatus||'', dcCatatan:r.dcCatatan||'', dcNominal:r.dcNominal||'', dcClosingAt:r.dcClosingAt||'', dcPic:r.dcPic||'', dcUpdatedAt:r.dcUpdatedAt||''};
 }
 function toRcRow(r){
   return {orderId:r.orderId, tanggal:r.tanggal||'', nama:r.nama||'', hp:r.hp||'', alamat:r.alamat||'', cs:r.cs||'', sumber:r.sumber||'',
@@ -1467,7 +1540,7 @@ function toRcRow(r){
 function fromDcRow(o){
   return {orderId:o.orderId, tanggal:o.tanggal||'', jam:'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:'', ip:'',
     catatanAsli:'', status:'fake', metodeVerif:'', waktuVerif:'', auditor:'', catatan:o.catatanAudit||'', updatedAt:'',
-    dcStatus:o.dcStatus||'', dcPic:o.dcPic||'', dcFollowUp:o.dcFollowUp||'', dcCatatan:o.dcCatatan||'', dcUpdatedAt:'', dcNominal:o.dcNominal||'', dcClosingAt:o.dcClosingAt||'',
+    dcStatus:o.dcStatus||'', dcPic:o.dcPic||'', dcFollowUp:o.dcFollowUp||'', dcCatatan:o.dcCatatan||'', dcUpdatedAt:o.dcUpdatedAt||'', dcNominal:o.dcNominal||'', dcClosingAt:o.dcClosingAt||'',
     rcStatus:'', rcPic:'', rcNominal:'', rcClosingAt:'', rcCatatan:''};
 }
 function fromRcRow(o){
@@ -1480,8 +1553,35 @@ function fromRcRow(o){
 function overlayLocalOnly(remoteRow){
   var local = ROWS.find(function(x){ return x.orderId === remoteRow.orderId; });
   var out = Object.assign({}, remoteRow);
+  if (local && !out.dcUpdatedAt && local.dcUpdatedAt) out.dcUpdatedAt = local.dcUpdatedAt; /* fallback bila Code.gs lama belum di-deploy ulang */
   if (local) LOCAL_ONLY.forEach(function(f){ if (local[f]) out[f] = local[f]; });
   return out;
+}
+function toAuRow(r){
+  return {orderId:r.orderId, tanggal:r.tanggal||'', jam:r.jam||'', nama:r.nama||'', hp:r.hp||'', alamat:r.alamat||'', cs:r.cs||'', sumber:r.sumber||'', produk:r.produk||'', ip:r.ip||'',
+    catatanAsli:r.catatanAsli||'', status:r.status||'', catatan:r.catatan||'', metodeVerif:r.metodeVerif||'', waktuVerif:r.waktuVerif||'', updatedAt:r.updatedAt||'',
+    rcStatus:r.rcStatus||'', rcCatatan:r.rcCatatan||'', rcNominal:r.rcNominal||'', rcClosingAt:r.rcClosingAt||'', rcDirect:r.rcDirect?'true':''};
+}
+function fromAuRow(o){
+  return {orderId:o.orderId, tanggal:o.tanggal||'', jam:o.jam||'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:o.produk||'', ip:o.ip||'',
+    catatanAsli:o.catatanAsli||'', status:o.status||'', metodeVerif:o.metodeVerif||'', waktuVerif:o.waktuVerif||'', auditor:'', catatan:o.catatan||'', updatedAt:o.updatedAt||'',
+    dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:'',
+    rcStatus:o.rcStatus||'', rcPic:'', rcNominal:o.rcNominal||'', rcClosingAt:o.rcClosingAt||'', rcCatatan:o.rcCatatan||'', rcDirect:o.rcDirect==='true'};
+}
+function rowFor(kind, r){ return kind === 'dc' ? toDcRow(r) : kind === 'rc' ? toRcRow(r) : toAuRow(r); }
+/* kirim banyak lead sekaligus: dikelompokkan per sheet, 100 baris per request (action 'batch') */
+async function syncBatch(rows){
+  var groups = {}, single = [], failed = [];
+  rows.forEach(function(r){ var k = kindOf(r), p = REMOTE[r.orderId]; if (!p || p === k) (groups[k] = groups[k] || []).push(r); else single.push(r); });
+  for (var k in groups){
+    for (var i = 0; i < groups[k].length; i += 100){
+      var chunk = groups[k].slice(i, i + 100);
+      try{ await api('POST', {action:'batch', kind:k, rows: chunk.map(function(r){ return rowFor(k, r); })}); chunk.forEach(function(r){ REMOTE[r.orderId] = k; DIRTY.delete(r.orderId); }); }
+      catch(e){ chunk.forEach(function(r){ failed.push(r); }); }
+    }
+  }
+  for (var j = 0; j < single.length; j++){ try{ await syncRow(single[j]); DIRTY.delete(single[j].orderId); }catch(e){ failed.push(single[j]); } }
+  persist(); return failed;
 }
 /* kirim 1 baris ke sheet yang tepat, pindah sheet (action:'move') kalau kind-nya berubah sejak terakhir sinkron */
 async function syncRow(r){
@@ -1490,7 +1590,7 @@ async function syncRow(r){
     if (prevKind){ await api('POST', {action:'delete', kind:prevKind, id:r.orderId}); delete REMOTE[r.orderId]; }
     return;
   }
-  var row = kind === 'dc' ? toDcRow(r) : toRcRow(r);
+  var row = rowFor(kind, r);
   if (prevKind && prevKind !== kind) await api('POST', {action:'move', from:prevKind, to:kind, row:row});
   else await api('POST', {action:'upsert', kind:kind, row:row});
   REMOTE[r.orderId] = kind;
@@ -1507,13 +1607,10 @@ async function pushRow(r){
   catch(e){ refreshSync(); toast('Belum tersimpan ke Sheet (' + e.message + '). Akan dikirim ulang saat Sinkron.'); }
 }
 async function pushMany(rows){
-  if (!SET.url){ rows.forEach(function(r){ DIRTY.add(r.orderId); }); persist(); return refreshSync(); }
+  rows.forEach(function(r){ DIRTY.add(r.orderId); }); persist();
+  if (!SET.url) return refreshSync();
   setSync('busy', 'Mengirim ' + rows.length + ' lead…');
-  for (var i=0;i<rows.length;i++){
-    try{ await syncRow(rows[i]); }
-    catch(e){ DIRTY.add(rows[i].orderId); }
-  }
-  persist(); refreshSync();
+  await syncBatch(rows); refreshSync();
 }
 async function pushDelete(id){
   var kind = REMOTE[id];
@@ -1523,16 +1620,9 @@ async function pushDelete(id){
   catch(e){ refreshSync(); toast('Hapus belum sampai ke Sheet (' + e.message + ').'); }
 }
 async function flush(){
-  var ids = Array.from(DIRTY);
-  for (var i=0;i<ids.length;i++){
-    var r = ROWS.find(function(x){ return x.orderId === ids[i]; });
-    if (!r || !syncable(r)){
-      DIRTY.delete(ids[i]);
-      if (r && REMOTE[ids[i]]){ try{ await api('POST', {action:'delete', kind:REMOTE[ids[i]], id:ids[i]}); delete REMOTE[ids[i]]; }catch(e){} }
-      continue;
-    }
-    try{ await syncRow(r); DIRTY.delete(ids[i]); }catch(e){}
-  }
+  var rows = [];
+  Array.from(DIRTY).forEach(function(id){ var r = ROWS.find(function(x){ return x.orderId === id; }); if (r) rows.push(r); else DIRTY.delete(id); });
+  await syncBatch(rows);
   var dels = Array.from(DEL);
   for (var k=0;k<dels.length;k++){
     var kind = REMOTE[dels[k]];
@@ -1546,7 +1636,8 @@ async function pull(){
   try{
     await flush();
     var j = await api('GET');
-    var serverRows = (j.dc||[]).map(fromDcRow).concat((j.rc||[]).map(fromRcRow));
+    var serverRows = (j.dc||[]).map(fromDcRow).concat((j.rc||[]).map(fromRcRow)).concat((j.au||[]).map(fromAuRow));
+    serverRows.forEach(function(r){ ['tanggal','dcFollowUp','dcClosingAt','rcClosingAt'].forEach(function(k){ r[k] = normDate(r[k]); }); }); /* pulihkan tanggal yang diubah Sheets jadi "Tue Oct 06 2026 ..." */
     var serverIds = new Set(serverRows.map(function(r){ return r.orderId; }));
     var merged = serverRows.filter(function(r){ return !DEL.has(r.orderId); }).map(function(r){
       var withLocalOnly = overlayLocalOnly(r);
@@ -1554,11 +1645,17 @@ async function pull(){
       return local ? mergeParts(local, withLocalOnly) : withLocalOnly;
     });
     /* lead audit yang belum/tidak ke Sheet tetap dipertahankan di browser ini */
-    ROWS.forEach(function(r){ if (!serverIds.has(r.orderId) && (DIRTY.has(r.orderId) || !syncable(r))) merged.push(r); });
+    ROWS.forEach(function(r){
+      if (serverIds.has(r.orderId)) return;
+      if (DIRTY.has(r.orderId) || !syncable(r)) merged.push(r);
+      else if (!REMOTE[r.orderId]){ DIRTY.add(r.orderId); merged.push(r); } /* belum pernah terkonfirmasi di Sheet: jangan dibuang, kirim ulang */
+    });
     var newRemote = {};
     merged.forEach(function(r){ if (serverIds.has(r.orderId)){ var k = kindOf(r); if (k) newRemote[r.orderId] = k; } });
     REMOTE = newRemote;
-    ROWS = merged; persist(); renderAll(); refreshSync();
+    ROWS = merged; persist(); renderAll();
+    if (DIRTY.size) await flush(); /* kirim lead lokal yang belum ada di Sheet */
+    refreshSync();
   }catch(e){ setSync('err', 'Gagal sinkron: ' + e.message); toast('Gagal sinkron: ' + e.message + '. Data lokal tetap aman.'); }
 }
 
@@ -1571,7 +1668,7 @@ function handleFile(file){
       var days = ROWS.filter(function(r){ return r.tanggal; }).map(function(r){ return r.tanggal; }).sort();
       if (days.length && !ROWS.some(function(r){ return r.tanggal === F.day; })) F.day = days[days.length - 1];
       renderAll();
-      toast('Impor selesai: ' + res.added + ' lead baru, ' + res.updated + ' diperbarui.');
+      toast('Impor selesai: ' + res.added + ' lead baru, ' + res.updated + ' diperbarui.' + (res.nodate ? ' ⚠️ ' + res.nodate + ' baris tanpa tanggal terbaca (cek format created_at), tidak akan tampil di tanggal mana pun.' : ''));
       var toSend = ROWS.filter(function(r){ return DIRTY.has(r.orderId) && syncable(r); });
       ROWS.forEach(function(r){ if (!syncable(r)) DIRTY.delete(r.orderId); }); persist();
       if (SET.url && toSend.length) pushMany(toSend);
@@ -1617,6 +1714,7 @@ async function saveForm(ev){
     produk: old ? old.produk : '', ip: old ? old.ip : '', jam: old ? old.jam : '', catatanAsli: old ? old.catatanAsli : '',
     updatedAt: new Date().toISOString()
   });
+  if (old && old.status === 'real' && old.rcDirect && r.status !== 'real'){ r.rcStatus = ''; r.rcNominal = ''; r.rcClosingAt = ''; r.rcCatatan = ''; r.rcDirect = false; }
   if (!r.nama){ $('#f_err').textContent = 'Nama wajib diisi.'; return; }
   if (old) ROWS[ROWS.indexOf(old)] = r; else ROWS.push(r);
   dlgForm.close(); persist(); renderAll();
@@ -1641,7 +1739,7 @@ function exportCSV(){
   var lines = [head].concat(rows.map(function(r){
     var fl = flagsFor(r, idx).map(function(f){ return f.t; }).join('; ');
     return [r.tanggal, r.nama, r.hp, r.alamat, r.cs, r.sumber, STLABEL[r.status], r.status === 'real' ? RCLABEL[r.rcStatus||''] : '', fl, METLABEL[r.metodeVerif] || r.metodeVerif || '', fmtVerifWaktu(r.waktuVerif), r.catatan];
-  })).map(function(a){ return a.map(function(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }).join(','); });
+  })).map(function(a){ return a.map(csvCell).join(','); });
   var blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'audit-lead-' + ymd(new Date()) + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
@@ -1682,7 +1780,11 @@ function bind(){
   $('#btnSync').addEventListener('click', function(){ if (!SET.url){ toast('Isi URL Web App di Pengaturan dulu.'); return; } pull(); });
   $('#btnExport').addEventListener('click', function(){ if (TAB === 'dc') exportDC(); else if (TAB === 'rc') exportRC(); else exportCSV(); });
   $('#btnTheme').addEventListener('click', function(){ SET.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; persist(); applyTheme(); });
-  $('#btnSetup').addEventListener('click', function(){ $('#s_url').value = SET.url; $('#s_role').value = SET.role === 'dc' ? 'dc' : 'audit'; $('#codeBox').value = $('#codegs').textContent.trim(); dlgSetup.showModal(); });
+  $('#btnSetup').addEventListener('click', function(){ $('#s_url').value = SET.url; $('#s_token').value = SET.token || ''; $('#s_role').value = SET.role === 'dc' ? 'dc' : 'audit'; $('#codeBox').value = $('#codegs').textContent.trim(); dlgSetup.showModal(); });
+  ['#tbody','#dcBody','#rcBody'].forEach(function(sel){ $(sel).addEventListener('click', function(ev){
+    var b = ev.target.closest('button[data-pg]'); if (!b || b.disabled) return;
+    PG[b.dataset.pg] += Number(b.dataset.dir); renderAll();
+  }); });
   $('#btnPic').addEventListener('click', openPic);
   $('#picSave').addEventListener('click', savePic);
   $('#picClose').addEventListener('click', function(){ $('#dlgPic').close(); });
@@ -1719,6 +1821,7 @@ function bind(){
     var r = ROWS.find(function(x){ return x.orderId === $('#d_id').value; }); if (!r) return;
     if (!confirm('Kembalikan ' + (r.nama || 'lead ini') + ' ke tab Audit Lead sebagai "Perlu dicek"? Lead ini akan dihapus dari Google Sheet.')) return;
     r.status = 'cek'; r.updatedAt = new Date().toISOString();
+    r.dcStatus = ''; r.dcFollowUp = ''; r.dcCatatan = ''; r.dcNominal = ''; r.dcClosingAt = ''; r.dcUpdatedAt = '';
     dlgDC.close(); persist(); renderAll(); pushRow(r);
     toast('Dikembalikan ke tab Audit Lead (tanggal order ' + fmtD(r.tanggal) + ').');
   });
@@ -1756,6 +1859,13 @@ function bind(){
   });
   $('#rc_st').addEventListener('change', function(){ $('#rc_nomWrap').hidden = $('#rc_st').value !== 'closing'; });
   $('#rcCancel').addEventListener('click', function(){ dlgRC.close(); });
+  $('#rcBack').addEventListener('click', function(){
+    var r = ROWS.find(function(x){ return x.orderId === $('#rc_id').value; }); if (!r) return;
+    if (!confirm('Kembalikan ' + (r.nama || 'lead ini') + ' ke tab Audit Lead sebagai "Perlu dicek"? Data closing lead ini akan dihapus dari Google Sheet.')) return;
+    r.status = 'cek'; r.rcStatus = ''; r.rcNominal = ''; r.rcClosingAt = ''; r.rcCatatan = ''; r.rcDirect = false; r.updatedAt = new Date().toISOString();
+    dlgRC.close(); persist(); renderAll(); pushRow(r);
+    toast('Dikembalikan ke tab Audit Lead (tanggal order ' + fmtD(r.tanggal) + ').');
+  });
 
   $('#btnWA').addEventListener('click', function(){ $('#waText').value = TAB === 'dc' ? waDcText() : TAB === 'rc' ? waRcText() : waAuditText(); $('#waCopy').textContent = 'Salin'; dlgWA.showModal(); });
   $('#waClose').addEventListener('click', function(){ dlgWA.close(); });
@@ -1799,7 +1909,7 @@ function bind(){
 
   $('#sClose').addEventListener('click', function(){ dlgSetup.close(); });
   $('#sTest').addEventListener('click', function(){
-    SET.url = $('#s_url').value.trim(); SET.role = $('#s_role').value; persist(); applyRole(); renderAll();
+    SET.url = $('#s_url').value.trim(); SET.token = $('#s_token').value.trim(); SET.role = $('#s_role').value; persist(); applyRole(); renderAll();
     if (SET.url){ dlgSetup.close(); pull(); } else { refreshSync(); toast('Pengaturan tersimpan (mode lokal).'); }
   });
   $('#sCopy').addEventListener('click', function(){
