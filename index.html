@@ -492,6 +492,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <div class="dlg">
     <h3>Laporan untuk grup WhatsApp</h3>
     <p class="hint">Teks bisa diedit dulu sebelum disalin. Tanda *bintang* akan tampil tebal di WhatsApp.</p>
+    <div class="field" id="waPeriodWrap" style="margin-top:10px" hidden><label>Periode laporan</label><div class="dp" id="dpWa"></div></div>
     <div class="field span2" style="margin-top:10px"><label for="waText">Isi laporan</label><textarea id="waText" rows="15"></textarea></div>
     <div class="dfoot">
       <button type="button" class="btn" id="waClose">Tutup</button>
@@ -1223,7 +1224,7 @@ function renderCsFilter(){
 function renderAll(){
   renderCsFilter();
   var base = filtered(true), rows = filtered();
-  renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); renderAN(); redrawPickers();
+  renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); renderAN(); redrawPickers(); waSync();
   $('#fDay').value = F.day; $('#fStatus').value = F.status;
 }
 
@@ -1460,25 +1461,6 @@ function exportRC(){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
 }
-function waRcText(){
-  var q = rcData().all;
-  var closedAll = q.filter(function(r){ return r.rcStatus === 'closing'; });
-  var todo = q.filter(function(r){ return !r.rcStatus; }).length;
-  var run = q.filter(rcRun).length;
-  var batal = q.filter(function(r){ return r.rcStatus === 'batal'; }).length;
-  var omzet = closedAll.reduce(function(a, r){ return a + (Number(r.rcNominal) || 0); }, 0);
-  var totalReal = q.length; /* q sudah termasuk yang closing */
-  var DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
-  return ['*LAPORAN CLOSING LEAD (REAL)*',
-    'Dibuat ' + waNow(),
-    DIV,
-    '*Periode: ' + (RCS.period === 'all' ? 'Semua data' : rangeText(RCS)) + '* — ' + totalReal + ' lead Real',
-    '• Belum ditangani: ' + todo,
-    '• Sedang diproses (konsultasi/negosiasi/menunggu bayar): ' + run,
-    '• Closing: ' + closedAll.length + ' (' + pctS(closedAll.length, totalReal) + ') · omzet ' + rp(omzet),
-    '• Tidak jadi: ' + batal].join('\n');
-}
-
 function applyRole(){
   var dc = SET.role === 'dc';
   document.querySelector('.tabs').hidden = dc;
@@ -1567,31 +1549,56 @@ function waAuditText(){
   }
   return L.join('\n');
 }
-function waDcText(){
-  var all = dcData().all, today = ymd(new Date()), n = {}, ps = dcPeriodStats(all);
-  Object.keys(DCLABEL).forEach(function(k){ n[k] = 0; });
-  all.forEach(function(r){ var k = r.dcStatus || ''; n[k] = (n[k] || 0) + 1; });
-  var omzetAll = all.reduce(function(a, r){ return a + (r.dcStatus === 'selesai' ? (Number(r.dcNominal) || 0) : 0); }, 0);
+/* Laporan gabungan Follow-up Lead + Closing Lead, dengan pemilih periode sendiri */
+var WAS = {period:'today', from:'', to:''}, WASIG = '';
+function waCombinedText(){
+  var rg = getRange(WAS), inR = function(d){ return !!d && d >= rg[0] && d <= rg[1]; };
+  var sum = function(a, f){ return a.reduce(function(t, r){ return t + (Number(r[f]) || 0); }, 0); };
+  var fake = ROWS.filter(function(r){ return r.status === 'fake'; });
+  var real = ROWS.filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); });
+  var dcIn = fake.filter(function(r){ return inR(r.tanggal); });
+  var dcHandled = fake.filter(function(r){ return r.dcUpdatedAt && inR(ymd(new Date(r.dcUpdatedAt))); }).length;
+  var dcCl = fake.filter(function(r){ return r.dcStatus === 'selesai' && inR(r.dcClosingAt); });
+  var rcIn = real.filter(function(r){ return inR(r.tanggal); });
+  var rcCl = real.filter(function(r){ return r.rcStatus === 'closing' && inR(r.rcClosingAt); });
+  var dcOm = sum(dcCl, 'dcNominal'), rcOm = sum(rcCl, 'rcNominal');
+  var g = {};
+  var G = function(n){ n = n || '(belum ada PIC)'; return g[n] || (g[n] = {n:n, c:0, om:0, t:0, cc:0}); };
+  dcCl.forEach(function(r){ var o = G(r.dcPic); o.c++; o.om += Number(r.dcNominal) || 0; });
+  rcCl.forEach(function(r){ var o = G(r.rcPic); o.c++; o.om += Number(r.rcNominal) || 0; });
+  /* closing rate = dari lead yang masuk pada periode, berapa yang sudah closing */
+  var dcCoh = dcIn.filter(function(r){ return r.dcStatus === 'selesai'; }).length, rcCoh = rcIn.filter(function(r){ return r.rcStatus === 'closing'; }).length;
+  dcIn.forEach(function(r){ var o = G(r.dcPic); o.t++; if (r.dcStatus === 'selesai') o.cc++; });
+  rcIn.forEach(function(r){ var o = G(r.rcPic); o.t++; if (r.rcStatus === 'closing') o.cc++; });
+  var per = Object.keys(g).map(function(k){ return g[k]; }).sort(function(a, b){ return b.om - a.om || b.cc - a.cc; });
   var DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
-  var L = ['*LAPORAN FOLLOW-UP LEAD (TIDAK REAL)*',
-    'Periode: ' + periodeLabel(),
+  var L = ['*LAPORAN CS DL*',
+    'Periode: ' + (WAS.period === 'all' ? 'Semua data' : rangeText(WAS)),
     'Dibuat ' + waNow(),
     DIV,
-    '*Aktivitas periode*',
-    '• Lead tidak real masuk: ' + ps.masuk,
-    '• Lead ditangani: ' + ps.handled,
-    '• Closing: ' + ps.closing + ' (omzet ' + rp(ps.omzet) + ')',
+    '*TOTAL CLOSING*',
+    (dcCl.length + rcCl.length) + ' closing · ' + rp(dcOm + rcOm),
+    'Closing rate: ' + pctS(dcCoh + rcCoh, dcIn.length + rcIn.length) + ' (' + (dcCoh + rcCoh) + ' dari ' + (dcIn.length + rcIn.length) + ' lead masuk)',
     DIV,
-    '*Posisi saat ini* — ' + all.length + ' lead'];
-  Object.keys(DCLABEL).forEach(function(k){
-    if (!n[k] && k !== '' && k !== 'selesai') return;
-    if (k === 'selesai') L.push('• ' + DCLABEL[k] + ' (periode ini): ' + ps.closing + ' · omzet ' + rp(ps.omzet) + '\n   Total keseluruhan: ' + n[k] + ' (' + pctS(n[k], all.length) + ') · omzet ' + rp(omzetAll));
-    else L.push('• ' + DCLABEL[k] + ': ' + n[k]);
-  });
-  L.push(DIV,
-    'Follow-up hari ini: ' + all.filter(function(r){ return r.dcFollowUp === today && !dcDone(r); }).length,
-    'Follow-up terlambat: ' + all.filter(dcLate).length);
+    '*Follow-up Lead (Tidak real)*',
+    '• Masuk ' + dcIn.length + ' · ditangani ' + dcHandled + ' · belum ditangani ' + dcIn.filter(function(r){ return !r.dcStatus; }).length,
+    '• Closing ' + dcCl.length + ' · ' + rp(dcOm) + ' · rate ' + pctS(dcCoh, dcIn.length),
+    '• Terlambat follow-up (saat ini): ' + fake.filter(dcLate).length,
+    DIV,
+    '*Closing Lead (Real)*',
+    '• Masuk ' + rcIn.length + ' · belum ditangani ' + rcIn.filter(function(r){ return !r.rcStatus; }).length + ' · diproses ' + rcIn.filter(rcRun).length + ' · tidak jadi ' + rcIn.filter(function(r){ return r.rcStatus === 'batal'; }).length,
+    '• Closing ' + rcCl.length + ' · ' + rp(rcOm) + ' · rate ' + pctS(rcCoh, rcIn.length)];
+  if (per.length){
+    L.push(DIV, '*Per CS DL*');
+    per.slice(0, 15).forEach(function(o){ L.push('• ' + o.n + ': ' + o.c + ' closing · ' + rp(o.om) + (o.t ? ' · rate ' + pctS(o.cc, o.t) + ' (' + o.cc + '/' + o.t + ')' : '')); });
+  }
+  L.push(DIV, '_Closing rate = lead yang masuk pada periode dan sudah closing, dibanding semua lead yang masuk pada periode itu._');
   return L.join('\n');
+}
+function waSync(){
+  if (!dlgWA.open || TAB === 'audit') return;
+  var sig = JSON.stringify(WAS);
+  if (sig !== WASIG){ WASIG = sig; $('#waText').value = waCombinedText(); }
 }
 
 /* ---------- sync ---------- */
@@ -1887,6 +1894,7 @@ function applyTheme(){
 function bind(){
   mountPicker($('#dpDc'));
   mountPicker($('#dpAn'), ANS);
+  mountPicker($('#dpWa'), WAS);
   mountPicker($('#dpRc'), RCS);
   $('#rcBasis').addEventListener('change', function(){ RCS.basis = this.value; renderAll(); });
   ['#kpis', '#segAudit'].forEach(function(sel){ $(sel).addEventListener('click', function(ev){
@@ -2001,7 +2009,7 @@ function bind(){
     toast('Dikembalikan ke tab Audit Lead (tanggal order ' + fmtD(r.tanggal) + ').');
   });
 
-  $('#btnWA').addEventListener('click', function(){ $('#waText').value = TAB === 'dc' ? waDcText() : TAB === 'rc' ? waRcText() : waAuditText(); $('#waCopy').textContent = 'Salin'; dlgWA.showModal(); });
+  $('#btnWA').addEventListener('click', function(){ var comb = TAB === 'dc' || TAB === 'rc'; $('#waPeriodWrap').hidden = !comb; if (comb){ WASIG = JSON.stringify(WAS); $('#waText').value = waCombinedText(); } else $('#waText').value = waAuditText(); $('#waCopy').textContent = 'Salin'; dlgWA.showModal(); });
   $('#waClose').addEventListener('click', function(){ dlgWA.close(); });
   $('#waOpen').addEventListener('click', function(){ window.open('https://wa.me/?text=' + encodeURIComponent($('#waText').value), '_blank', 'noopener'); });
   $('#waCopy').addEventListener('click', function(){
