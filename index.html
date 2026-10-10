@@ -329,6 +329,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <button class="tab" role="tab" id="tabAudit" data-tab="audit" aria-selected="true">Audit Lead</button>
   <button class="tab" role="tab" id="tabRC" data-tab="rc" aria-selected="false">Closing Lead <span class="cnt" id="rcCount" hidden>0</span></button>
   <button class="tab" role="tab" id="tabDC" data-tab="dc" aria-selected="false">Follow-up Lead <span class="cnt" id="dcCount" hidden>0</span></button>
+  <button class="tab" role="tab" id="tabAN" data-tab="an" aria-selected="false">Analisa CS DL</button>
 </nav>
 
 <div id="viewAudit">
@@ -374,6 +375,19 @@ dialog::backdrop{backdrop-filter:blur(2px)}
 
 </div>
 
+<div id="viewAN" hidden>
+  <section class="filters" aria-label="Filter Analisa"><div class="field"><label>Periode (tanggal order lead)</label><div class="dp" id="dpAn"></div></div></section>
+  <section class="kpis" id="anKpis" aria-label="Ringkasan CS DL"></section>
+  <section class="card panel">
+    <div class="head"><h2>Performa per CS DL</h2><span class="muted" id="anNote"></span></div>
+    <div class="tw"><table class="lead">
+      <thead><tr><th>CS DL</th><th class="n">Lead dipegang</th><th class="n">Tidak real (lead → closing)</th><th class="n">Real (lead → closing)</th><th class="n">Closing</th><th>Closing rate</th><th class="n">Omzet</th><th class="n">Rata-rata</th><th class="n">Belum ditangani</th><th class="n">Terlambat</th></tr></thead>
+      <tbody id="anBody"></tbody>
+    </table></div>
+  </section>
+  <section class="card panel"><div class="head"><h2>Insight</h2></div><ul id="anInsight" style="margin:6px 0 0 18px;line-height:1.7"></ul></section>
+</div>
+
 <div id="viewDC" hidden>
   <section class="filters" aria-label="Filter Follow-up Lead">
     <div class="field"><label>Periode</label><div class="dp" id="dpDc"></div></div>
@@ -398,6 +412,8 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <section class="filters" aria-label="Filter Closing Lead">
     <div class="field"><label for="rcCs">CS DL</label><select id="rcCs"><option value="">Semua CS DL</option></select></div>
     <div class="field"><label for="rcSt">Status</label><select id="rcSt"></select></div>
+    <div class="field"><label>Periode</label><div class="dp" id="dpRc"></div></div>
+    <div class="field"><label for="rcBasis">Berdasarkan</label><select id="rcBasis"><option value="order">Tanggal order</option><option value="closing">Tanggal closing</option></select></div>
     <div class="field grow"><label for="rcQ">Cari</label><input type="search" id="rcQ" placeholder="Nama, HP, alamat"></div>
   </section>
   <section class="kpis" id="rcKpis" aria-label="Ringkasan Closing Lead"></section>
@@ -490,10 +506,9 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   <div class="dlg">
     <h3>Pengaturan</h3>
     <div class="field span2"><label for="s_url">URL Web App Google Apps Script (/exec)</label><input id="s_url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+    <div class="field span2" style="margin-top:10px"><label for="s_auditor">Nama auditor (dicatat di setiap lead yang kamu ubah)</label><input id="s_auditor" placeholder="mis. Rina"></div>
     <div class="field span2" style="margin-top:10px"><label for="s_token">Token keamanan (harus sama dengan TOKEN di Code.gs)</label><input id="s_token" type="password" autocomplete="off" placeholder="kosongkan jika tidak memakai token"></div>
     <p class="hint">Hubungkan ke Google Sheet supaya semua lead (audit, follow-up, dan closing) tersimpan permanen dan bisa dibuka dari browser lain.</p>
-    <div class="field span2" style="margin-top:12px"><label for="s_role">Peran di browser ini</label>
-      <select id="s_role"><option value="audit">Auditor (upload CSV &amp; audit lead)</option><option value="dc">Petugas Follow-up (kelola lead Tidak real)</option></select></div>
     <p class="hint">Auditor mengirim lead Tidak real dan lead Real milik alur CS DL (termasuk yang sudah closing) ke Sheet. Petugas Follow-up hanya melihat dan mengelola lead Tidak real, jadi tidak perlu upload CSV.</p>
     <div class="dfoot" style="margin-top:10px"><button class="btn" id="sTest">Simpan &amp; sinkron</button></div>
     <div class="hr"></div>
@@ -586,16 +601,16 @@ const TOKEN = '';
 // urutan HARUS sama persis dengan urutan kolom di sheet (posisi kolom,
 // bukan teks headernya) - lihat file Excel untuk header tampilan aslinya.
 const HEAD_DC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
-                 'dcFollowUp', 'dcStatus', 'dcCatatan', 'dcNominal', 'dcClosingAt', 'dcPic', 'dcUpdatedAt'];
+                 'dcFollowUp', 'dcStatus', 'dcCatatan', 'dcNominal', 'dcClosingAt', 'dcPic', 'dcUpdatedAt', 'auditor', 'ver'];
 const HEAD_RC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
-                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcPic'];
+                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcPic', 'auditor', 'ver'];
 
 // kolom yang harus disimpan sebagai teks (supaya "081..." / tanggal string
 // tidak diubah otomatis jadi angka/tanggal oleh Google Sheets)
 const HEAD_AU = ['orderId', 'tanggal', 'jam', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'produk', 'ip', 'catatanAsli',
                  'status', 'catatan', 'metodeVerif', 'waktuVerif', 'updatedAt',
-                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcDirect'];
-const TEXT_FIELDS = ['jam', 'waktuVerif', 'updatedAt', 'tanggal', 'hp', 'dcFollowUp', 'dcClosingAt', 'rcClosingAt', 'dcUpdatedAt'];
+                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcDirect', 'auditor', 'ver'];
+const TEXT_FIELDS = ['orderId', 'ver', 'jam', 'waktuVerif', 'updatedAt', 'tanggal', 'hp', 'dcFollowUp', 'dcClosingAt', 'rcClosingAt', 'dcUpdatedAt'];
 
 function getSheet_(name, head) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -606,6 +621,7 @@ function getSheet_(name, head) {
     sh.setFrozenRows(1);
     formatText_(sh, head);
   } else if (sh.getLastColumn() < head.length) {
+    if (sh.getMaxColumns() < head.length) sh.insertColumnsAfter(sh.getMaxColumns(), head.length - sh.getMaxColumns());
     // header yang sudah ada TIDAK ditimpa; hanya kolom baru di ujung yang ditambahkan
     const last = Math.max(sh.getLastColumn(), 0);
     sh.getRange(1, last + 1, 1, head.length - last).setValues([head.slice(last)]);
@@ -677,20 +693,31 @@ function upsert_(kind, row) {
 // Kirim banyak baris sekaligus (1 request) - jauh lebih cepat untuk upload CSV besar.
 function upsertMany_(kind, rows) {
   const { sh, head } = sheetFor_(kind);
+  const last = Math.max(sh.getLastRow(), 1);
+  const vers = sh.getRange(1, head.indexOf('ver') + 1, last, 1).getValues();
+  const auds = sh.getRange(1, head.indexOf('auditor') + 1, last, 1).getValues();
   const pos = {};
   idColumn_(sh).forEach(function (v, i) { if (i > 0 && v !== '') pos[v] = i + 1; });
-  const fresh = [];
+  const fresh = [], conflicts = [];
   rows.forEach(function (row) {
-    const line = head.map(function (h) { return row[h] === undefined ? '' : row[h]; });
     const key = String(row.orderId), p = pos[key];
+    if (p > 0) {   // baris sudah ada: tolak jika versinya sudah diubah orang lain sejak terakhir dibaca pengirim
+      const cur = String(vers[p - 1][0] == null ? '' : vers[p - 1][0]);
+      if (!row._force && cur !== '' && String(row._base || '') !== cur) {
+        conflicts.push({ orderId: key, auditor: String(auds[p - 1][0] || ''), ver: cur });
+        return;
+      }
+    }
+    const line = head.map(function (h) { return row[h] === undefined ? '' : row[h]; });
     if (p > 0) sh.getRange(p, 1, 1, head.length).setValues([line]);
     else if (p === undefined) { fresh.push(line); pos[key] = -1; }
   });
   if (fresh.length) {
-    const start = Math.max(sh.getLastRow(), 1) + 1;
+    const start = last + 1;
     if (start + fresh.length - 1 > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), start + fresh.length - 1 - sh.getMaxRows());
     sh.getRange(start, 1, fresh.length, head.length).setValues(fresh);
   }
+  return conflicts;
 }
 
 function delete_(kind, orderId) {
@@ -706,9 +733,31 @@ function delete_(kind, orderId) {
  * di sheet tujuan otomatis dikosongkan.
  * body: { action:'move', from:'dc'|'rc', to:'dc'|'rc', row:{...semua kolom yang mau dibawa...} }
  */
+function findAuditor_(id) {
+  const kinds = ['dc', 'rc', 'au'];
+  for (let i = 0; i < kinds.length; i++) {
+    const { sh, head } = sheetFor_(kinds[i]);
+    const idx = idColumn_(sh).indexOf(String(id));
+    if (idx > 0) return String(sh.getRange(idx + 1, head.indexOf('auditor') + 1, 1, 1).getValues()[0][0] || '');
+  }
+  return '';
+}
+
+// Pindah sheet: lead hanya boleh ada di SATU sheet. Ditolak (konflik) bila baris asal sudah
+// dipindah/diubah orang lain sejak terakhir dibaca pengirim, kecuali row._force.
 function move_(from, to, row) {
+  const f = sheetFor_(from);
+  const idx = idColumn_(f.sh).indexOf(String(row.orderId));
+  if (!row._force) {
+    if (idx < 1) return [{ orderId: String(row.orderId), auditor: findAuditor_(row.orderId), ver: '' }];
+    const cur = String(f.sh.getRange(idx + 1, f.head.indexOf('ver') + 1, 1, 1).getValues()[0][0]);
+    if (cur !== '' && String(row._base || '') !== cur) {
+      return [{ orderId: String(row.orderId), auditor: String(f.sh.getRange(idx + 1, f.head.indexOf('auditor') + 1, 1, 1).getValues()[0][0] || ''), ver: cur }];
+    }
+  }
   upsert_(to, row);
-  delete_(from, row.orderId);
+  ['dc', 'rc', 'au'].forEach(function (k) { if (k !== to) delete_(k, row.orderId); });
+  return [];
 }
 
 function doGet(e) {
@@ -725,18 +774,19 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     if (TOKEN && body.token !== TOKEN) throw new Error('Token salah');
+    let conflicts = [];
     if (body.action === 'upsert') {
       upsert_(body.kind, body.row);
     } else if (body.action === 'delete') {
       delete_(body.kind, body.id);
     } else if (body.action === 'batch') {
-      upsertMany_(body.kind, body.rows);
+      conflicts = upsertMany_(body.kind, body.rows);
     } else if (body.action === 'move') {
-      move_(body.from, body.to, body.row);
+      conflicts = move_(body.from, body.to, body.row);
     } else {
       throw new Error('Aksi tidak dikenali: ' + body.action);
     }
-    return json_({ ok: true });
+    return json_({ ok: true, conflicts: conflicts });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   } finally {
@@ -766,6 +816,10 @@ function normDate(v){
   m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (m) return m[3] + '-' + m[2] + '-' + m[1];
   return v;
 }
+function withAud(fn){ return function(o){ var r = fn(o); r.auditor = o.auditor || ''; r.ver = o.ver || ''; return r; }; }
+var PQ = Promise.resolve(), LASTERR = '';
+function enqueue(fn){ var p = PQ.then(fn); PQ = p.catch(function(){}); return p; } /* kirim berurutan agar tidak bentrok dengan dirinya sendiri */
+function normJam(v){ v = String(v||''); var m = v.match(/(\d{2}):(\d{2})/); return m ? m[1] + ':' + m[2] : v; } /* jam yang diubah Sheets jadi "1899-12-30T10:00:00" */
 function load(k, def){ try{ var v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; }catch(e){ return def; } }
 function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
@@ -919,7 +973,8 @@ function verifCell(r){
 var PRESETS = [['today','Hari Ini'],['yesterday','Kemarin'],['thisweek','Minggu Ini'],['lastweek','Minggu Lalu'],['7','7 Hari Terakhir'],['30','30 Hari Terakhir'],['thismonth','Bulan Ini'],['lastmonth','Bulan Lalu'],['90','90 Hari Terakhir'],['all','Semua Data']];
 var MONF = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 function fmtD(d){ var q = String(d).split('-'); return q[2] + ' ' + MONF[Number(q[1]) - 1].slice(0, 3) + ' ' + q[0]; }
-function rangeFor(key){
+function rangeFor(key, S){
+  S = S || PS;
   var now = new Date(), t = ymd(now), dow = (now.getDay() + 6) % 7;
   var add = function(n){ var x = new Date(now); x.setDate(x.getDate() + n); return ymd(x); };
   var mon = function(o, day){ return ymd(new Date(now.getFullYear(), now.getMonth() + o, day)); };
@@ -934,11 +989,11 @@ function rangeFor(key){
     case 'thismonth': return [mon(0, 1), mon(1, 0)];
     case 'lastmonth': return [mon(-1, 1), mon(0, 0)];
     case 'all': return ['0000-00-00', '9999-99-99'];
-    default: return [PS.from || '0000-00-00', PS.to || '9999-99-99'];
+    default: return [S.from || '0000-00-00', S.to || '9999-99-99'];
   }
 }
-function getRange(){ return rangeFor(PS.period); }
-function rangeText(){ var r = getRange(); return r[0] === r[1] ? fmtD(r[0]) : fmtD(r[0]) + ' – ' + fmtD(r[1]); }
+function getRange(S){ S = S || PS; return rangeFor(S.period, S); }
+function rangeText(S){ var r = getRange(S); return r[0] === r[1] ? fmtD(r[0]) : fmtD(r[0]) + ' – ' + fmtD(r[1]); }
 function periodeLabel(){
   if (PS.period === 'all') return 'Semua data';
   var p = PRESETS.filter(function(x){ return x[0] === PS.period; })[0];
@@ -958,16 +1013,17 @@ function dpMonth(y, m, rg){
   }
   return h + '</div>';
 }
-function mountPicker(root){
+function mountPicker(root, S){
+  S = S || PS;
   var st = {open:false, y:0, m:0, start:null};
   root._st = st;
   root.draw = function(){
-    var html = '<button type="button" class="dp-btn" aria-haspopup="dialog" aria-expanded="' + st.open + '">📅 <span>' + esc(PS.period === 'all' ? 'Semua Data' : (PS.period === 'custom' ? '' : (PRESETS.filter(function(x){ return x[0] === PS.period; })[0] || ['', ''])[1] + ' · ') + (PS.period === 'all' ? '' : rangeText())) + '</span></button>';
+    var html = '<button type="button" class="dp-btn" aria-haspopup="dialog" aria-expanded="' + st.open + '">📅 <span>' + esc(S.period === 'all' ? 'Semua Data' : (S.period === 'custom' ? '' : (PRESETS.filter(function(x){ return x[0] === S.period; })[0] || ['', ''])[1] + ' · ') + (S.period === 'all' ? '' : rangeText(S))) + '</span></button>';
     if (st.open){
-      var rg = st.start ? [st.start, st.start] : (PS.period === 'all' ? ['9', '0'] : getRange());
+      var rg = st.start ? [st.start, st.start] : (S.period === 'all' ? ['9', '0'] : getRange(S));
       var ny = st.m === 11 ? st.y + 1 : st.y, nm = (st.m + 1) % 12;
       html += '<div class="dp-pop" role="dialog" aria-label="Pilih periode"><div class="dp-pre">' +
-        PRESETS.map(function(p){ return '<button type="button" data-p="' + p[0] + '"' + (PS.period === p[0] ? ' class="on"' : '') + '>' + p[1] + '</button>'; }).join('') +
+        PRESETS.map(function(p){ return '<button type="button" data-p="' + p[0] + '"' + (S.period === p[0] ? ' class="on"' : '') + '>' + p[1] + '</button>'; }).join('') +
         '</div><div class="dp-cals"><div class="dp-cal">' + dpMonth(st.y, st.m, rg) + '</div><div class="dp-cal dp-2">' + dpMonth(ny, nm, rg) + '</div></div></div>';
     }
     root.innerHTML = html;
@@ -976,15 +1032,15 @@ function mountPicker(root){
     var b = ev.target.closest('button'); if (!b) return;
     if (b.classList.contains('dp-btn')){
       if (st.open) st.open = false;
-      else { var d = new Date((PS.period === 'all' ? ymd(new Date()) : getRange()[0]) + 'T00:00:00'); st.y = d.getFullYear(); st.m = d.getMonth(); st.start = null; st.open = true; }
+      else { var d = new Date((S.period === 'all' ? ymd(new Date()) : getRange(S)[0]) + 'T00:00:00'); st.y = d.getFullYear(); st.m = d.getMonth(); st.start = null; st.open = true; }
       return root.draw();
     }
     if (b.dataset.nav){ st.m += Number(b.dataset.nav); if (st.m < 0){ st.m = 11; st.y--; } if (st.m > 11){ st.m = 0; st.y++; } return root.draw(); }
-    if (b.dataset.p){ PS.period = b.dataset.p; st.open = false; st.start = null; return renderAll(); }
+    if (b.dataset.p){ S.period = b.dataset.p; st.open = false; st.start = null; return renderAll(); }
     if (b.dataset.d){
       if (!st.start){ st.start = b.dataset.d; return root.draw(); }
       var a = st.start, z = b.dataset.d; if (z < a){ var x = a; a = z; z = x; }
-      PS.period = 'custom'; PS.from = a; PS.to = z; st.start = null; st.open = false; return renderAll();
+      S.period = 'custom'; S.from = a; S.to = z; st.start = null; st.open = false; return renderAll();
     }
   });
   PICKERS.push(root); root.draw();
@@ -1014,7 +1070,7 @@ function filtered(skipStatus){
 var PAGESIZE = 25, PG = {au:1, dc:1, rc:1}, PGSIG = {};
 function isClosed(r){ return (r.status === 'real' && r.rcStatus === 'closing') || (r.status === 'fake' && r.dcStatus === 'selesai'); }
 function pageSlice(key, arr){
-  var sig = JSON.stringify(key === 'au' ? F : key === 'dc' ? DCF : RCF);
+  var sig = JSON.stringify(key === 'au' ? F : key === 'dc' ? DCF : [RCF, RCS]);
   if (PGSIG[key] !== sig){ PGSIG[key] = sig; PG[key] = 1; } /* filter berubah -> kembali ke halaman 1 */
   var pages = Math.max(1, Math.ceil(arr.length / PAGESIZE));
   PG[key] = Math.min(Math.max(PG[key], 1), pages);
@@ -1114,7 +1170,7 @@ function renderTable(rows){
           var sel = (r.status === 'real' && r.rcStatus === 'closing') ? 'real_closing' : r.status;
           return '<option value="' + k + '"' + (sel===k?' selected':'') + '>' + STOPTLABEL[k] + '</option>';
         }).join('') +
-      '</select></td>' +
+      '</select>' + (r.auditor ? '<div style="font-size:11px;opacity:.7;margin-top:3px">' + esc(r.auditor) + '</div>' : '') + '</td>' +
       '<td>' + (r.status === 'real'
         ? '<select class="st-' + rcCls(r.rcStatus) + '" data-act="rcStatus" data-id="' + esc(r.orderId) + '" aria-label="Status closing">' + rcOpts(r.rcStatus||'') + '</select>'
         : '<span class="muted">–</span>') + '</td>' +
@@ -1167,7 +1223,7 @@ function renderCsFilter(){
 function renderAll(){
   renderCsFilter();
   var base = filtered(true), rows = filtered();
-  renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); redrawPickers();
+  renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); renderAN(); redrawPickers();
   $('#fDay').value = F.day; $('#fStatus').value = F.status;
 }
 
@@ -1306,9 +1362,12 @@ function exportDC(){
 }
 /* ---------- closing lead (real) ---------- */
 var RCF = {cs:'', st:'aktif', q:''};
+var RCS = {period:'all', from:'', to:'', basis:'order'}; /* periode tab Closing Lead */
 var dlgRC = $('#dlgRC');
 function rcData(){
-  var all = ROWS.filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); }); /* lead Real milik CS DL; closing langsung dari Audit (CS biasa) tidak masuk sini */
+  var raw = ROWS.filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); });
+  var rg = rangeFor(RCS.period, RCS), fld = RCS.basis === 'closing' ? 'rcClosingAt' : 'tanggal';
+  var all = RCS.period === 'all' ? raw : raw.filter(function(r){ return r[fld] && r[fld] >= rg[0] && r[fld] <= rg[1]; }); /* lead Real milik CS DL; closing langsung dari Audit (CS biasa) tidak masuk sini */
   var q = RCF.q.trim().toLowerCase();
   var rows = all.filter(function(r){
     if (RCF.cs && r.rcPic !== RCF.cs) return false;
@@ -1321,12 +1380,13 @@ function rcData(){
     var d = ((a.rcStatus||'')===''?0:1) - ((b.rcStatus||'')===''?0:1); if (d) return d;
     return (b.tanggal+b.jam).localeCompare(a.tanggal+a.jam);
   });
-  return {all: all, rows: rows};
+  return {all: all, rows: rows, raw: raw};
 }
 function renderRC(){
   var d = rcData(), all = d.all, rows = d.rows;
   var todo = all.filter(function(r){ return !r.rcStatus; }).length;
-  var badge = $('#rcCount'); badge.textContent = todo; badge.hidden = !todo;
+  var todoAll = d.raw.filter(function(r){ return !r.rcStatus; }).length; /* badge tab: selalu total, tidak ikut filter periode */
+  var badge = $('#rcCount'); badge.textContent = todoAll; badge.hidden = !todoAll;
 
   var names = {}; all.forEach(function(r){ if (r.rcPic) names[r.rcPic] = 1; });
   var nl = Object.keys(names).sort();
@@ -1425,11 +1485,45 @@ function applyRole(){
   $('.brand p').textContent = dc ? 'Lead Tidak real hasil audit: kelola penanganan dan follow-up' : 'Pendataan lead dari order masuk — nama, alamat, CS, dan status real / tidak real';
   setTab(dc ? 'dc' : TAB);
 }
+var ANS = {period:'all', from:'', to:''};
+function renderAN(){
+  var rg = rangeFor(ANS.period, ANS), g = {};
+  function G(n){ n = n || '(Belum ada PIC)'; return g[n] || (g[n] = {n:n, dcN:0, dcC:0, rcN:0, rcC:0, omz:0, belum:0, late:0}); }
+  ROWS.forEach(function(r){
+    if (!r.tanggal || r.tanggal < rg[0] || r.tanggal > rg[1]) return;
+    if (r.status === 'fake'){ var o = G(r.dcPic); o.dcN++; if (!r.dcStatus) o.belum++; if (r.dcStatus === 'selesai'){ o.dcC++; o.omz += Number(r.dcNominal) || 0; } if (dcLate(r)) o.late++; }
+    else if (r.status === 'real' && !r.rcDirect){ var q = G(r.rcPic); q.rcN++; if (!r.rcStatus) q.belum++; if (r.rcStatus === 'closing'){ q.rcC++; q.omz += Number(r.rcNominal) || 0; } }
+  });
+  var list = Object.keys(g).map(function(k){ var o = g[k]; o.t = o.dcN + o.rcN; o.c = o.dcC + o.rcC; return o; }).sort(function(a, b){ return b.omz - a.omz || b.c - a.c; });
+  var tot = list.reduce(function(a, o){ a.t += o.t; a.c += o.c; a.omz += o.omz; a.belum += o.belum; a.late += o.late; return a; }, {t:0, c:0, omz:0, belum:0, late:0});
+  $('#anKpis').innerHTML =
+    kpiBtn('k-total', '', 'CS DL aktif', String(list.length), 'yang memegang lead', false) +
+    kpiBtn('k-real', '', 'Closing rate', pctS(tot.c, tot.t), tot.c + ' closing dari ' + tot.t + ' lead dipegang', false) +
+    kpiBtn('k-real', '', 'Omzet closing', rpK(tot.omz), tot.c ? 'rata-rata ' + rp(Math.round(tot.omz / tot.c)) + ' / closing' : 'belum ada closing', false) +
+    kpiBtn('k-cek', '', 'Perlu perhatian', String(tot.belum + tot.late), tot.belum + ' belum ditangani · ' + tot.late + ' terlambat', false);
+  $('#anNote').textContent = list.length + ' CS DL · ' + (ANS.period === 'all' ? 'semua data' : rangeText(ANS));
+  $('#anBody').innerHTML = list.length ? list.map(function(o){
+    var pc = o.t ? o.c / o.t * 100 : 0;
+    return '<tr><td><b>' + esc(o.n) + '</b></td><td class="n">' + o.t + '</td><td class="n">' + o.dcN + ' → ' + o.dcC + '</td><td class="n">' + o.rcN + ' → ' + o.rcC + '</td><td class="n">' + o.c + '</td>' +
+      '<td><div style="display:flex;flex-direction:column;gap:4px;min-width:90px"><span>' + pctS(o.c, o.t) + '</span><div class="bar"><b style="width:' + Math.min(100, pc) + '%"></b></div></div></td>' +
+      '<td class="n">' + rp(o.omz) + '</td><td class="n">' + (o.c ? rp(Math.round(o.omz / o.c)) : '–') + '</td><td class="n">' + o.belum + '</td><td class="n">' + o.late + '</td></tr>';
+  }).join('') : '<tr><td colspan="10">' + empty('Belum ada lead yang dipegang CS DL pada periode ini.') + '</td></tr>';
+  var named = list.filter(function(o){ return o.n !== '(Belum ada PIC)'; }), ins = [];
+  var top = named.filter(function(o){ return o.omz > 0; })[0];
+  if (top) ins.push('Omzet tertinggi: <b>' + esc(top.n) + '</b> (' + rp(top.omz) + ' dari ' + top.c + ' closing).');
+  var best = named.filter(function(o){ return o.t >= 5; }).sort(function(a, b){ return b.c / b.t - a.c / a.t; })[0];
+  if (best) ins.push('Closing rate tertinggi (minimal 5 lead): <b>' + esc(best.n) + '</b> ' + pctS(best.c, best.t) + '.');
+  var back = named.slice().sort(function(a, b){ return (b.belum + b.late) - (a.belum + a.late); })[0];
+  if (back && back.belum + back.late > 0) ins.push('Antrean terbanyak: <b>' + esc(back.n) + '</b> (' + back.belum + ' belum ditangani, ' + back.late + ' terlambat).');
+  if (g['(Belum ada PIC)']) ins.push('⚠️ ' + g['(Belum ada PIC)'].t + ' lead belum punya CS DL (PIC); isi PIC-nya supaya masuk analisa.');
+  $('#anInsight').innerHTML = ins.length ? ins.map(function(x){ return '<li>' + x + '</li>'; }).join('') : '<li>Belum ada data untuk dianalisa.</li>';
+}
 function setTab(t){
   TAB = t;
-  $('#viewAudit').hidden = t !== 'audit'; $('#viewDC').hidden = t !== 'dc'; $('#viewRC').hidden = t !== 'rc';
-  $('#tabAudit').setAttribute('aria-selected', String(t === 'audit')); $('#tabDC').setAttribute('aria-selected', String(t === 'dc')); $('#tabRC').setAttribute('aria-selected', String(t === 'rc'));
+  $('#viewAudit').hidden = t !== 'audit'; $('#viewDC').hidden = t !== 'dc'; $('#viewRC').hidden = t !== 'rc'; $('#viewAN').hidden = t !== 'an';
+  $('#tabAudit').setAttribute('aria-selected', String(t === 'audit')); $('#tabDC').setAttribute('aria-selected', String(t === 'dc')); $('#tabRC').setAttribute('aria-selected', String(t === 'rc')); $('#tabAN').setAttribute('aria-selected', String(t === 'an'));
   ['#btnAdd','#lblChecked'].forEach(function(sel){ $(sel).hidden = t !== 'audit'; });
+  ['#btnWA','#btnExport'].forEach(function(sel){ $(sel).hidden = t === 'an'; }); /* laporan/ekspor belum tersedia untuk tab Analisa */
 }
 
 /* ---------- laporan whatsapp ---------- */
@@ -1568,20 +1662,47 @@ function fromAuRow(o){
     dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:'',
     rcStatus:o.rcStatus||'', rcPic:'', rcNominal:o.rcNominal||'', rcClosingAt:o.rcClosingAt||'', rcCatatan:o.rcCatatan||'', rcDirect:o.rcDirect==='true'};
 }
-function rowFor(kind, r){ return kind === 'dc' ? toDcRow(r) : kind === 'rc' ? toRcRow(r) : toAuRow(r); }
+function rowFor(kind, r){
+  var o = kind === 'dc' ? toDcRow(r) : kind === 'rc' ? toRcRow(r) : toAuRow(r);
+  o.auditor = r.auditor || ''; o.ver = r.ver || ''; o._base = r._base || ''; o._force = !!r._force; return o;
+}
 /* kirim banyak lead sekaligus: dikelompokkan per sheet, 100 baris per request (action 'batch') */
 async function syncBatch(rows){
-  var groups = {}, single = [], failed = [];
+  var groups = {}, single = [], failed = [], conflicts = [];
   rows.forEach(function(r){ var k = kindOf(r), p = REMOTE[r.orderId]; if (!p || p === k) (groups[k] = groups[k] || []).push(r); else single.push(r); });
   for (var k in groups){
     for (var i = 0; i < groups[k].length; i += 100){
-      var chunk = groups[k].slice(i, i + 100);
-      try{ await api('POST', {action:'batch', kind:k, rows: chunk.map(function(r){ return rowFor(k, r); })}); chunk.forEach(function(r){ REMOTE[r.orderId] = k; DIRTY.delete(r.orderId); }); }
-      catch(e){ chunk.forEach(function(r){ failed.push(r); }); }
+      var chunk = groups[k].slice(i, i + 100), payload = chunk.map(function(r){ return rowFor(k, r); });
+      try{
+        var res = await api('POST', {action:'batch', kind:k, rows: payload}), cf = {};
+        (res.conflicts || []).forEach(function(c){ cf[c.orderId] = c; });
+        chunk.forEach(function(r, n){
+          if (cf[r.orderId]) conflicts.push({r:r, c:cf[r.orderId]});
+          else { REMOTE[r.orderId] = k; DIRTY.delete(r.orderId); r._base = payload[n].ver; delete r._force; }
+        });
+      }catch(e){ LASTERR = e.message; chunk.forEach(function(r){ failed.push(r); }); }
     }
   }
-  for (var j = 0; j < single.length; j++){ try{ await syncRow(single[j]); DIRTY.delete(single[j].orderId); }catch(e){ failed.push(single[j]); } }
-  persist(); return failed;
+  for (var j = 0; j < single.length; j++){
+    try{ var cf1 = await syncRow(single[j]); if (cf1) conflicts.push({r:single[j], c:cf1}); else { DIRTY.delete(single[j].orderId); single[j]._base = single[j].ver || ''; delete single[j]._force; } }
+    catch(e){ LASTERR = e.message; failed.push(single[j]); }
+  }
+  persist();
+  if (conflicts.length) await resolveConflicts(conflicts);
+  return failed;
+}
+/* lead yang sudah diubah orang lain sejak dibuka: tanya dulu sebelum menimpa */
+async function resolveConflicts(list){
+  var force = [], reload = false;
+  list.forEach(function(x){
+    var r = x.r, c = x.c;
+    if (!r.status && !r.catatan && !r.metodeVerif){ DIRTY.delete(r.orderId); reload = true; return; } /* belum diubah apa pun: pakai versi Sheet */
+    if (confirm('⚠️ Lead "' + (r.nama || r.orderId) + '" sudah diubah ' + (c.auditor ? 'oleh ' + c.auditor : 'orang lain') + ' sejak kamu membukanya.\n\nOK = timpa dengan perubahanmu\nBatal = pakai versi terbaru dari Sheet')) force.push(r);
+    else { DIRTY.delete(r.orderId); reload = true; }
+  });
+  persist();
+  if (force.length){ force.forEach(function(r){ r._force = true; }); await syncBatch(force); }
+  if (reload) setTimeout(pull, 0);
 }
 /* kirim 1 baris ke sheet yang tepat, pindah sheet (action:'move') kalau kind-nya berubah sejak terakhir sinkron */
 async function syncRow(r){
@@ -1590,9 +1711,10 @@ async function syncRow(r){
     if (prevKind){ await api('POST', {action:'delete', kind:prevKind, id:r.orderId}); delete REMOTE[r.orderId]; }
     return;
   }
-  var row = rowFor(kind, r);
-  if (prevKind && prevKind !== kind) await api('POST', {action:'move', from:prevKind, to:kind, row:row});
-  else await api('POST', {action:'upsert', kind:kind, row:row});
+  var row = rowFor(kind, r), res;
+  if (prevKind && prevKind !== kind) res = await api('POST', {action:'move', from:prevKind, to:kind, row:row});
+  else res = await api('POST', {action:'upsert', kind:kind, row:row});
+  if (res && res.conflicts && res.conflicts.length) return res.conflicts[0]; /* bentrok: ditangani resolveConflicts */
   REMOTE[r.orderId] = kind;
 }
 async function pushRow(r){
@@ -1601,10 +1723,12 @@ async function pushRow(r){
     if (REMOTE[r.orderId]) return pushDelete(r.orderId); /* keluar dari sheet -> hapus dari Sheet */
     persist(); return refreshSync();
   }
+  r.ver = String(Date.now()); if (SET.role !== 'dc' && SET.auditor) r.auditor = SET.auditor;
   DIRTY.add(r.orderId); persist();
   if (!SET.url) return refreshSync();
-  try{ await syncRow(r); DIRTY.delete(r.orderId); persist(); refreshSync(); }
-  catch(e){ refreshSync(); toast('Belum tersimpan ke Sheet (' + e.message + '). Akan dikirim ulang saat Sinkron.'); }
+  var f = await enqueue(function(){ return syncBatch([r]); });
+  refreshSync();
+  if (f && f.length) toast('Belum tersimpan ke Sheet (' + LASTERR + '). Akan dikirim ulang saat Sinkron.');
 }
 async function pushMany(rows){
   rows.forEach(function(r){ DIRTY.add(r.orderId); }); persist();
@@ -1630,14 +1754,16 @@ async function flush(){
   }
   persist();
 }
-async function pull(){
+var PULLING = false, LASTPULL = 0;
+async function pull(){ if (PULLING) return; PULLING = true; try{ await pull0(); } finally { PULLING = false; LASTPULL = Date.now(); } }
+async function pull0(){
   if (!SET.url) return refreshSync();
   setSync('busy', 'Sinkron…');
   try{
     await flush();
     var j = await api('GET');
-    var serverRows = (j.dc||[]).map(fromDcRow).concat((j.rc||[]).map(fromRcRow)).concat((j.au||[]).map(fromAuRow));
-    serverRows.forEach(function(r){ ['tanggal','dcFollowUp','dcClosingAt','rcClosingAt'].forEach(function(k){ r[k] = normDate(r[k]); }); }); /* pulihkan tanggal yang diubah Sheets jadi "Tue Oct 06 2026 ..." */
+    var serverRows = (j.dc||[]).map(withAud(fromDcRow)).concat((j.rc||[]).map(withAud(fromRcRow))).concat((j.au||[]).map(withAud(fromAuRow)));
+    serverRows.forEach(function(r){ ['tanggal','dcFollowUp','dcClosingAt','rcClosingAt'].forEach(function(k){ r[k] = normDate(r[k]); }); r.jam = normJam(r.jam); }); /* pulihkan tanggal yang diubah Sheets jadi "Tue Oct 06 2026 ..." */
     var serverIds = new Set(serverRows.map(function(r){ return r.orderId; }));
     var merged = serverRows.filter(function(r){ return !DEL.has(r.orderId); }).map(function(r){
       var withLocalOnly = overlayLocalOnly(r);
@@ -1650,6 +1776,8 @@ async function pull(){
       if (DIRTY.has(r.orderId) || !syncable(r)) merged.push(r);
       else if (!REMOTE[r.orderId]){ DIRTY.add(r.orderId); merged.push(r); } /* belum pernah terkonfirmasi di Sheet: jangan dibuang, kirim ulang */
     });
+    var SV = {}; serverRows.forEach(function(r){ SV[r.orderId] = r.ver; });
+    merged.forEach(function(r){ if (SV[r.orderId] !== undefined && !DIRTY.has(r.orderId)) r._base = SV[r.orderId]; }); /* versi Sheet saat dibaca = dasar deteksi bentrok */
     var newRemote = {};
     merged.forEach(function(r){ if (serverIds.has(r.orderId)){ var k = kindOf(r); if (k) newRemote[r.orderId] = k; } });
     REMOTE = newRemote;
@@ -1755,6 +1883,9 @@ function applyTheme(){
 /* ---------- event ---------- */
 function bind(){
   mountPicker($('#dpDc'));
+  mountPicker($('#dpAn'), ANS);
+  mountPicker($('#dpRc'), RCS);
+  $('#rcBasis').addEventListener('change', function(){ RCS.basis = this.value; renderAll(); });
   ['#kpis', '#segAudit'].forEach(function(sel){ $(sel).addEventListener('click', function(ev){
     var b = ev.target.closest('[data-f],[data-goto]'); if (!b) return;
     if (b.dataset.goto) return setTab(b.dataset.goto);
@@ -1780,7 +1911,7 @@ function bind(){
   $('#btnSync').addEventListener('click', function(){ if (!SET.url){ toast('Isi URL Web App di Pengaturan dulu.'); return; } pull(); });
   $('#btnExport').addEventListener('click', function(){ if (TAB === 'dc') exportDC(); else if (TAB === 'rc') exportRC(); else exportCSV(); });
   $('#btnTheme').addEventListener('click', function(){ SET.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; persist(); applyTheme(); });
-  $('#btnSetup').addEventListener('click', function(){ $('#s_url').value = SET.url; $('#s_token').value = SET.token || ''; $('#s_role').value = SET.role === 'dc' ? 'dc' : 'audit'; $('#codeBox').value = $('#codegs').textContent.trim(); dlgSetup.showModal(); });
+  $('#btnSetup').addEventListener('click', function(){ $('#s_url').value = SET.url; $('#s_token').value = SET.token || ''; $('#s_auditor').value = SET.auditor || ''; $('#codeBox').value = $('#codegs').textContent.trim(); dlgSetup.showModal(); });
   ['#tbody','#dcBody','#rcBody'].forEach(function(sel){ $(sel).addEventListener('click', function(ev){
     var b = ev.target.closest('button[data-pg]'); if (!b || b.disabled) return;
     PG[b.dataset.pg] += Number(b.dataset.dir); renderAll();
@@ -1909,7 +2040,7 @@ function bind(){
 
   $('#sClose').addEventListener('click', function(){ dlgSetup.close(); });
   $('#sTest').addEventListener('click', function(){
-    SET.url = $('#s_url').value.trim(); SET.token = $('#s_token').value.trim(); SET.role = $('#s_role').value; persist(); applyRole(); renderAll();
+    SET.url = $('#s_url').value.trim(); SET.token = $('#s_token').value.trim(); SET.auditor = $('#s_auditor').value.trim(); SET.role = 'audit'; persist(); applyRole(); renderAll();
     if (SET.url){ dlgSetup.close(); pull(); } else { refreshSync(); toast('Pengaturan tersimpan (mode lokal).'); }
   });
   $('#sCopy').addEventListener('click', function(){
@@ -1926,10 +2057,12 @@ function bind(){
 
 applyTheme();
 bind();
+SET.role = 'audit'; /* peran tunggal: auditor (abaikan sisa pengaturan lama) */
 applyRole();
 renderAll();
 refreshSync();
 if (SET.url) pull();
+
 })();
 </script>
 </body>
