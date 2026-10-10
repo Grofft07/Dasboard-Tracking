@@ -1295,21 +1295,23 @@ function renderDC(){
   $('#dcCs').innerHTML = '<option value="">Semua CS DL</option>' + nl.map(function(n){ return '<option' + (n===DCF.cs?' selected':'') + '>' + esc(n) + '</option>'; }).join('');
 
   var run = all.filter(function(r){ return r.dcStatus === 'dihubungi' || r.dcStatus === 'nores' || r.dcStatus === 'janji'; }).length;
-  var done = all.filter(function(r){ return r.dcStatus === 'selesai'; }).length;
+  var ps0 = dcPeriodStats(all);
+  var done = ps0.closing; /* closing pada periode terpilih (tanggal closing) */
+  var doneAll = all.filter(function(r){ return r.dcStatus === 'selesai'; }).length;
   var fail = all.filter(function(r){ return r.dcStatus === 'batal' || r.dcStatus === 'gagal'; }).length;
-  var omzet = all.reduce(function(a, r){ return a + (r.dcStatus === 'selesai' ? (Number(r.dcNominal) || 0) : 0); }, 0);
-  var rate = all.length ? Math.round(done / all.length * 100) : 0;
+  var omzet = ps0.omzet;
+  var rate = all.length ? Math.round(doneAll / all.length * 100) : 0;
   var late = all.filter(dcLate).length;
   var dk = function(cls, f, lbl, val, sub, tip){ return '<button type="button" class="card kpi ' + cls + (DCF.st === f ? ' on' : '') + '" data-df="' + f + '" aria-pressed="' + (DCF.st === f) + '"' + (tip ? ' title="' + tip + '"' : '') + '><div class="lbl">' + lbl + '</div><div class="val">' + val + '</div><div class="sub">' + sub + '</div></button>'; };
   $('#dcKpis').innerHTML =
     dk('k-cek hero', '', 'Belum ditangani', todo, 'belum disentuh') +
     dk('k-total', 'ANY', 'Total lead', all.length, 'berstatus Tidak real') +
     dk('k-run', 'run', 'Sedang berjalan', run, 'dihubungi / belum merespons / ada janji') +
-    dk('k-real', 'selesai', 'Closing', done, rate + '% dari total · ' + fail + ' ditutup tanpa closing') +
-    dk('k-real', 'selesai', 'Omzet closing', rpK(omzet), done ? 'rata-rata ' + rp(Math.round(omzet / done)) + ' / closing' : 'belum ada closing', rp(omzet)) +
+    dk('k-real', 'selesai', 'Closing', done, 'pada periode ini · total keseluruhan ' + doneAll) +
+    dk('k-real', 'selesai', 'Omzet closing', rpK(omzet), done ? 'rata-rata ' + rp(Math.round(omzet / done)) + ' / closing' : 'belum ada closing pada periode ini', rp(omzet)) +
     dk('k-fake', 'late', 'Follow-up terlambat', late, 'lewat tanggal, belum selesai');
-  renderSeg($('#segDc'), 'Alur follow-up', all.length + ' lead · ' + rate + '% closing',
-    [{l:'Belum ditangani', n:todo, c:'cek', f:''}, {l:'Sedang berjalan', n:run, c:'run', f:'run'}, {l:'Closing', n:done, c:'real', f:'selesai'}, {l:'Ditutup tanpa closing', n:fail, c:'blank', f:'closed'}], 'data-df');
+  renderSeg($('#segDc'), 'Alur follow-up', all.length + ' lead · ' + rate + '% closing (posisi keseluruhan)',
+    [{l:'Belum ditangani', n:todo, c:'cek', f:''}, {l:'Sedang berjalan', n:run, c:'run', f:'run'}, {l:'Closing', n:doneAll, c:'real', f:'selesai'}, {l:'Ditutup tanpa closing', n:fail, c:'blank', f:'closed'}], 'data-df');
   $('#dcSt').value = DCF.st;
 
   var ps = dcPeriodStats(all);
@@ -1393,7 +1395,7 @@ function renderRC(){
   if (RCF.cs && nl.indexOf(RCF.cs) < 0) RCF.cs = '';
   $('#rcCs').innerHTML = '<option value="">Semua CS DL</option>' + nl.map(function(n){ return '<option' + (n===RCF.cs?' selected':'') + '>' + esc(n) + '</option>'; }).join('');
 
-  var closedAll = ROWS.filter(function(r){ return r.status === 'real' && r.rcStatus === 'closing' && !r.rcDirect; });
+  var closedAll = all.filter(function(r){ return r.rcStatus === 'closing'; }); /* ikut filter periode + basis (tanggal order / closing) */
   var done = closedAll.length;
   var omzet = closedAll.reduce(function(a, r){ return a + (Number(r.rcNominal) || 0); }, 0);
   var run = all.filter(rcRun).length;
@@ -1405,7 +1407,7 @@ function renderRC(){
     rk('k-cek hero', '', 'Belum ditangani', todo, 'lead Real yang belum ada kabar') +
     rk('k-run', 'run', 'Sedang diproses', run, 'konsultasi / negosiasi / menunggu pembayaran') +
     rk('k-blank', 'batal', 'Tidak jadi', fail, 'ditutup tanpa closing') +
-    rk('k-real', 'closing', 'Sudah closing', done, rate + '% dari total real') +
+    rk('k-real', 'closing', 'Sudah closing', done, RCS.basis === 'closing' ? 'closing pada periode ini' : rate + '% dari ' + totalReal + ' lead real pada periode') +
     rk('k-real', 'closing', 'Omzet closing', rpK(omzet), done ? 'rata-rata ' + rp(Math.round(omzet / done)) + ' / closing' : 'belum ada closing');
   $('#rcSt').value = RCF.st;
   $('#rcNote').textContent = rows.length + ' lead';
@@ -1460,7 +1462,7 @@ function exportRC(){
 }
 function waRcText(){
   var q = rcData().all;
-  var closedAll = ROWS.filter(function(r){ return r.status === 'real' && r.rcStatus === 'closing' && !r.rcDirect; });
+  var closedAll = q.filter(function(r){ return r.rcStatus === 'closing'; });
   var todo = q.filter(function(r){ return !r.rcStatus; }).length;
   var run = q.filter(rcRun).length;
   var batal = q.filter(function(r){ return r.rcStatus === 'batal'; }).length;
@@ -1470,7 +1472,7 @@ function waRcText(){
   return ['*LAPORAN CLOSING LEAD (REAL)*',
     'Dibuat ' + waNow(),
     DIV,
-    '*Posisi saat ini* — ' + totalReal + ' lead Real',
+    '*Periode: ' + (RCS.period === 'all' ? 'Semua data' : rangeText(RCS)) + '* — ' + totalReal + ' lead Real',
     '• Belum ditangani: ' + todo,
     '• Sedang diproses (konsultasi/negosiasi/menunggu bayar): ' + run,
     '• Closing: ' + closedAll.length + ' (' + pctS(closedAll.length, totalReal) + ') · omzet ' + rp(omzet),
@@ -1583,7 +1585,8 @@ function waDcText(){
     '*Posisi saat ini* — ' + all.length + ' lead'];
   Object.keys(DCLABEL).forEach(function(k){
     if (!n[k] && k !== '' && k !== 'selesai') return;
-    L.push('• ' + DCLABEL[k] + ': ' + n[k] + (k === 'selesai' ? ' (' + pctS(n[k], all.length) + ') · total omzet ' + rp(omzetAll) : ''));
+    if (k === 'selesai') L.push('• ' + DCLABEL[k] + ' (periode ini): ' + ps.closing + ' · omzet ' + rp(ps.omzet) + '\n   Total keseluruhan: ' + n[k] + ' (' + pctS(n[k], all.length) + ') · omzet ' + rp(omzetAll));
+    else L.push('• ' + DCLABEL[k] + ': ' + n[k]);
   });
   L.push(DIV,
     'Follow-up hari ini: ' + all.filter(function(r){ return r.dcFollowUp === today && !dcDone(r); }).length,
