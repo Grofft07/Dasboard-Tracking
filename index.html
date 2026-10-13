@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dashboard Audit Lead</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -298,6 +298,52 @@ dialog::backdrop{backdrop-filter:blur(2px)}
 .dp-pre button.on{box-shadow:0 4px 10px color-mix(in srgb,var(--brand) 45%,transparent)}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== V14: mode HP ===== */
+.filtertoggle{display:none}
+@media (max-width:640px){
+  html{-webkit-text-size-adjust:100%}
+  .wrap{padding:12px 12px calc(86px + env(safe-area-inset-bottom,0px))}
+  input,select,textarea,.dp-btn{font-size:16px!important}
+  .btn,select,input:not([type=checkbox]):not([type=hidden]),.dp-btn{min-height:42px}
+  .btn.sm{min-height:40px;padding:8px 14px}
+  .btn.icon{min-width:42px}
+  .brand h1{font-size:21px}
+  .actions{width:100%}.actions .btn{flex:1 1 auto}
+  /* filter lipat */
+  .filtertoggle{display:flex;width:100%;justify-content:center;margin-bottom:10px}
+  .filters{display:grid;grid-template-columns:1fr;gap:10px}
+  .filters .field,.filters .field.grow{min-width:0;width:100%}
+  .filters .field input,.filters .field select{width:100%;min-width:0}
+  .filters.fold .field:not(.grow):not(:has(.dayNav)):not(:has(.dp)){display:none}
+  .dayNav{display:flex;gap:6px}.dayNav input{flex:1;min-width:0}
+  /* tab jadi bar bawah */
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;gap:2px;margin:0;border-radius:16px 16px 0 0;border-width:1px 0 0;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+  nav.tabs .tab{flex:1;min-width:0;flex-direction:column;justify-content:center;gap:2px;text-align:center;padding:8px 2px;font-size:11.5px;line-height:1.2;min-height:48px}
+  #toast{bottom:86px}
+  /* tabel -> kartu */
+  .tw{overflow:visible}
+  table,table tbody,table tr,table td{display:block;width:auto!important;max-width:none!important}
+  table thead{display:none}
+  table tbody tr{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;padding:6px 12px;margin:0 0 10px}
+  table td{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:7px 0!important;border-bottom:1px dashed var(--line);text-align:right;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere}
+  table td:last-child{border-bottom:0}
+  table td[data-label]::before{content:attr(data-label);flex:0 0 92px;text-align:left;color:var(--muted);font-size:12px;font-weight:600}
+  table td[colspan]{display:block;text-align:center;border:0}
+  table tbody tr:has(td[colspan]){border:0;background:none;padding:0}
+  table td select,table td input,table td.dc td input{flex:1;min-width:0!important;width:100%;max-width:62%}
+  table td .flags,table td .rowact{justify-content:flex-end}
+  table td.tdact{justify-content:stretch;padding-top:10px!important}
+  table td.tdact::before{display:none}
+  table td.tdact .rowact{display:flex;gap:8px;width:100%}
+  table td.tdact .rowact .btn{flex:1}
+  /* popup jadi bottom sheet */
+  dialog,dialog.wide{width:100vw;max-width:100vw;margin:auto 0 0;max-height:92vh;border-radius:16px 16px 0 0;overflow:auto}
+  .dlg{padding:16px 14px}
+  .dfoot{position:sticky;bottom:0;background:var(--panel);padding:10px 0 calc(6px + env(safe-area-inset-bottom,0px));margin-top:10px;border-top:1px solid var(--line)}
+  .dfoot .btn{flex:1}
+  .grid2{grid-template-columns:1fr}.span2{grid-column:span 1}
+}
 </style>
 </head>
 <body>
@@ -2074,6 +2120,38 @@ renderAll();
 refreshSync();
 if (SET.url) pull();
 
+})();
+</script>
+
+<script>
+/* V14: label kartu HP + filter lipat */
+(function(){
+  function lab(tb){
+    var t=tb.closest('table'); if(!t) return;
+    var ths=[].map.call(t.querySelectorAll('thead th'),function(h){return h.textContent.replace(/\s+/g,' ').trim();});
+    [].forEach.call(tb.rows,function(tr){
+      if(tr.cells.length!==ths.length) return;
+      [].forEach.call(tr.cells,function(td,i){
+        if(td.getAttribute('data-label')!==null) return;
+        td.setAttribute('data-label',ths[i]);
+        if(!ths[i]) td.classList.add('tdact');
+      });
+    });
+  }
+  [].forEach.call(document.querySelectorAll('table tbody'),function(tb){
+    lab(tb);
+    new MutationObserver(function(){lab(tb);}).observe(tb,{childList:true});
+  });
+  [].forEach.call(document.querySelectorAll('.filters'),function(f){
+    f.classList.add('fold');
+    var b=document.createElement('button');
+    b.type='button';b.className='btn filtertoggle';b.textContent='⚙ Filter lainnya ▾';
+    b.addEventListener('click',function(){
+      var c=f.classList.toggle('fold');
+      b.textContent=c?'⚙ Filter lainnya ▾':'⚙ Sembunyikan filter ▴';
+    });
+    f.parentNode.insertBefore(b,f);
+  });
 })();
 </script>
 </body>
