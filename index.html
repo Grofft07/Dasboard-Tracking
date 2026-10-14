@@ -484,7 +484,7 @@ tr.prow:hover td.pname{text-decoration:underline}
 <div id="viewHome">
   <section class="card panel">
     <div class="head"><h2>Daftar produk</h2><span class="muted" id="homeNote"></span><button type="button" class="btn primary sm" id="btnAddProd">+ Tambah produk</button></div>
-    <p class="hint" style="margin:-6px 0 10px">Buat produk dengan tombol Tambah produk, lalu klik produknya. Upload CSV dari dalam produk: semua lead di CSV itu otomatis masuk ke produk tersebut, jadi angka Audit, Closing, dan Follow-up tiap produk tidak bercampur.</p>
+    <p class="hint" style="margin:-6px 0 10px">Buat produk dengan tombol Tambah produk, lalu klik produknya. Upload CSV dari dalam produk: semua lead di CSV itu otomatis masuk ke produk tersebut, jadi angka Audit, Closing, dan Follow-up tiap produk tidak bercampur. Kolom Real, Tidak real, Closing, Closing rate, dan Omzet hanya menghitung lead yang ditangani CS DL (tab Closing Lead dan Follow-up Lead). Lead yang ditandai "Real, sudah closing" langsung di tab Audit Lead tidak dihitung di sini.</p>
     <div class="tw"><table>
       <thead><tr><th>Produk</th><th class="n">Total lead</th><th class="n">Real</th><th class="n">Tidak real</th><th class="n">Belum diperiksa</th><th class="n">Closing</th><th class="n">Closing rate</th><th class="n">Omzet</th><th></th></tr></thead>
       <tbody id="homeBody"></tbody>
@@ -1716,8 +1716,14 @@ function renderHome(){
   ROWS.forEach(function(r){
     var k = pk(r), o = g[k] || (g[k] = {n:k, t:0, real:0, fake:0, blank:0, cl:0, om:0});
     o.t++;
-    if (r.status === 'real') o.real++; else if (r.status === 'fake') o.fake++; else if (r.status === '') o.blank++;
-    if (isClosed(r)){ o.cl++; o.om += Number(r.status === 'fake' ? r.dcNominal : r.rcNominal) || 0; }
+    var direct = r.status === 'real' && r.rcStatus === 'closing' && r.rcDirect; /* closing langsung di Audit Lead (CS biasa): bukan milik CS DL */
+    if (r.status === 'real' && !direct){
+      o.real++; o.cs = (o.cs || 0) + 1;
+      if (r.rcStatus === 'closing'){ o.cl++; o.om += Number(r.rcNominal) || 0; }
+    } else if (r.status === 'fake'){
+      o.fake++; o.cs = (o.cs || 0) + 1;
+      if (r.dcStatus === 'selesai'){ o.cl++; o.om += Number(r.dcNominal) || 0; }
+    } else if (r.status === '') o.blank++;
   });
   (SET.products || []).forEach(function(n){ if (!g[n]) g[n] = {n:n, t:0, real:0, fake:0, blank:0, cl:0, om:0}; });
   var list = Object.keys(g).map(function(k){ return g[k]; }).sort(function(a, b){
@@ -1731,7 +1737,7 @@ function renderHome(){
     return '<tr class="prow" data-prod="' + esc(o.n) + '">' +
       '<td class="pname">' + esc(o.n) + '</td>' +
       '<td class="n">' + o.t + '</td><td class="n">' + o.real + '</td><td class="n">' + o.fake + '</td><td class="n">' + o.blank + '</td>' +
-      '<td class="n">' + o.cl + '</td><td class="n">' + pctS(o.cl, o.t) + '</td><td class="n">' + rp(o.om) + '</td>' +
+      '<td class="n">' + o.cl + '</td><td class="n">' + pctS(o.cl, o.cs || 0) + '</td><td class="n">' + rp(o.om) + '</td>' +
       '<td><div class="rowact"><button type="button" class="btn sm primary" data-open="1">Buka</button>' +
       (o.n === NOPROD ? '<button type="button" class="btn sm" data-assign="1">Tetapkan produk</button>' : '<button type="button" class="btn sm" data-rename="1">Ganti nama</button>' + '<button type="button" class="btn sm danger" data-delprod="1">Hapus</button>') + '</div></td></tr>';
   }).join('');
