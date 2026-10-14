@@ -300,7 +300,15 @@ dialog::backdrop{backdrop-filter:blur(2px)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 /* ===== V14: mode HP ===== */
-.filtertoggle{display:none}
+.themefab{display:none}
+@media (max-width:640px){
+  header.top{position:relative}
+  .themefab{display:inline-flex;align-items:center;gap:6px;position:absolute;top:14px;right:14px;z-index:5;min-height:40px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.16);color:#fff;font:600 12.5px/1 inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  header.top .brand h1{padding-right:112px}
+}
+
+.filtertoggle,.menutoggle{display:none}
+@media (max-width:640px){.menutoggle{display:flex;flex:0 0 100%;justify-content:center}}
 @media (max-width:640px){
   html{-webkit-text-size-adjust:100%}
   .wrap{padding:12px 12px calc(86px + env(safe-area-inset-bottom,0px))}
@@ -331,18 +339,85 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   table td[data-label]::before{content:attr(data-label);flex:0 0 92px;text-align:left;color:var(--muted);font-size:12px;font-weight:600}
   table td[colspan]{display:block;text-align:center;border:0}
   table tbody tr:has(td[colspan]){border:0;background:none;padding:0}
-  table td select,table td input,table td.dc td input{flex:1;min-width:0!important;width:100%;max-width:62%}
+  table td select,table td input{flex:1;min-width:0!important;width:100%;max-width:none!important}
   table td .flags,table td .rowact{justify-content:flex-end}
   table td.tdact{justify-content:stretch;padding-top:10px!important}
   table td.tdact::before{display:none}
   table td.tdact .rowact{display:flex;gap:8px;width:100%}
   table td.tdact .rowact .btn{flex:1}
+  /* perbaikan: strip status tidak menimpa label, baris kosong disembunyikan, header diringkas */
+  tr[data-st] td:first-child{box-shadow:none!important}
+  table tbody tr[data-st]{border-left-color:var(--rc,var(--brand))}
+  table td.emp{display:none}
+  .top .brand p{display:none}
+  .top{padding:14px 16px;gap:10px}
+  .actions.fold #btnExport,.actions.fold #lblChecked,.actions.fold #btnWA,.actions.fold #btnTheme,.actions.fold #btnPic,.actions.fold #btnSetup{display:none}
+  .legend button{min-height:38px;padding:6px 10px}
+  a.wa{display:inline-flex;align-items:center;min-height:34px;padding:0 10px;margin-left:6px}
+  input[type=checkbox]{width:22px;height:22px;min-height:0}
+  table td{padding:5px 0!important}
   /* popup jadi bottom sheet */
   dialog,dialog.wide{width:100vw;max-width:100vw;margin:auto 0 0;max-height:92vh;border-radius:16px 16px 0 0;overflow:auto}
   .dlg{padding:16px 14px}
   .dfoot{position:sticky;bottom:0;background:var(--panel);padding:10px 0 calc(6px + env(safe-area-inset-bottom,0px));margin-top:10px;border-top:1px solid var(--line)}
   .dfoot .btn{flex:1}
   .grid2{grid-template-columns:1fr}.span2{grid-column:span 1}
+}
+
+@media (max-width:640px){
+  :is(#tbody,#rcBody,#dcBody) tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:9px 12px 10px;margin:0 0 8px;align-items:start}
+  :is(#tbody,#rcBody,#dcBody) tr:has(td[colspan]){display:block;padding:0}
+  :is(#tbody,#rcBody,#dcBody) td{display:block;border:0;padding:0!important;text-align:left;min-width:0;order:5}
+  :is(#tbody,#rcBody,#dcBody) td::before{display:none}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="Nama"]{grid-column:1/-1;order:1;font-size:15px;line-height:1.3}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="HP"]{order:2;font-size:13.5px;display:flex;align-items:center;flex-wrap:wrap}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="HP"] a.wa{min-height:28px;padding:0 8px;margin-left:4px}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="Tanggal"]{order:3;text-align:right;font-size:12px;color:var(--muted);align-self:center}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="Alamat"]{grid-column:1/-1;order:4;font-size:12.5px;line-height:1.35;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden!important;margin:2px 0 4px}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="Alamat"].open{-webkit-line-clamp:unset;display:block}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="CS"],:is(#tbody,#rcBody,#dcBody) td[data-label="CS DL"],:is(#tbody,#rcBody,#dcBody) td[data-label="Sumber"],:is(#tbody,#rcBody,#dcBody) td[data-label="Indikasi"],:is(#tbody,#rcBody,#dcBody) td[data-label="Verifikasi"]{order:5;font-size:12px;color:var(--muted)}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="CS"]::before,:is(#tbody,#rcBody,#dcBody) td[data-label="CS DL"]::before,:is(#tbody,#rcBody,#dcBody) td[data-label="Sumber"]::before,:is(#tbody,#rcBody,#dcBody) td[data-label="Indikasi"]::before,:is(#tbody,#rcBody,#dcBody) td[data-label="Verifikasi"]::before{display:inline;content:attr(data-label) ": ";flex:none;font-weight:600;font-size:12px}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="Indikasi"],:is(#tbody,#rcBody,#dcBody) td[data-label="Verifikasi"]{grid-column:1/-1;order:7}
+  :is(#tbody,#rcBody,#dcBody) td.fld{order:6;display:flex;flex-direction:column;gap:2px;margin-top:5px;min-width:0}
+  :is(#tbody,#rcBody,#dcBody) td.fld.full{grid-column:1/-1}
+  :is(#tbody,#rcBody,#dcBody) td.fld::before{display:block;content:attr(data-label);flex:none;font-size:11px;font-weight:600;color:var(--muted)}
+  :is(#tbody,#rcBody,#dcBody) td.fld select,:is(#tbody,#rcBody,#dcBody) td.fld input{min-height:38px;padding:4px 8px;width:100%}
+  :is(#tbody,#rcBody,#dcBody) td.tdact{grid-column:1/-1;order:9;padding-top:6px!important}
+  :is(#tbody,#rcBody,#dcBody) td.tdact .btn{min-height:36px;padding:5px 10px}
+  :is(#tbody,#rcBody,#dcBody) td.emp{display:none}
+}
+
+@media (max-width:640px){
+  :is(#tbody,#rcBody,#dcBody) tr{position:relative}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="Nama"]{padding-right:76px!important}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="Tanggal"]{position:absolute;top:10px;right:12px;font-size:11.5px;line-height:1.3;align-self:auto}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="HP"]{grid-column:1/-1;flex-wrap:nowrap;gap:4px}
+  :is(#tbody,#rcBody,#dcBody) td[data-label="CS DL"]{grid-column:1/-1}
+  :is(#tbody,#rcBody,#dcBody) td.fld select,:is(#tbody,#rcBody,#dcBody) td.fld input{font-size:15px!important;padding:4px 6px;text-overflow:ellipsis}
+}
+@media (max-width:640px){:is(#tbody,#rcBody,#dcBody) td.fld select{font-size:14px!important;padding:4px 4px 4px 8px}}
+
+/* V14: kartu lebih ringkas */
+@media (max-width:640px){
+  #tbody td.fld[data-label="Status"]{flex-direction:row;align-items:center;flex-wrap:nowrap;gap:8px;margin-top:4px}
+  #tbody td.fld[data-label="Status"]::before{display:none}
+  #tbody td.fld[data-label="Status"] select{flex:1 1 auto;width:auto;min-width:0}
+  #tbody td.fld[data-label="Status"] div{flex:0 0 auto;margin:0!important;font-size:11px!important}
+  :is(#tbody,#rcBody,#dcBody) td.tdact{padding-top:4px!important}
+  :is(#tbody,#rcBody,#dcBody) td.tdact .btn{min-height:34px}
+  /* tab Analisa & rekap CS: tiap baris jadi kartu 3 kolom */
+  :is(#anBody,#csBody) tr{display:grid!important;grid-template-columns:repeat(3,1fr);gap:6px 8px;padding:9px 12px!important;margin:0 0 8px}
+  :is(#anBody,#csBody) tr:has(td[colspan]){display:block!important}
+  :is(#anBody,#csBody) td{display:flex!important;flex-direction:column;align-items:flex-start;gap:1px;border:0!important;padding:0!important;text-align:left!important;font-size:13.5px;min-width:0}
+  :is(#anBody,#csBody) td::before{display:block!important;flex:none!important;position:static!important;width:auto!important;height:auto!important;background:none!important;font-size:10.5px!important;line-height:1.2;color:var(--muted);font-weight:600}
+  :is(#anBody,#csBody) td:first-child{grid-column:1/-1;font-size:15px;font-weight:700}
+  :is(#anBody,#csBody) td:first-child::before{display:none!important}
+}
+
+@media (max-width:640px){
+  #dcBody tr{grid-template-columns:5fr 6fr}
+  #dcBody td.fld select,#dcBody td.fld input{font-size:13px!important;padding-left:6px;padding-right:4px}
+  #dcBody td.fld input[type=date]{padding-right:2px}
 }
 </style>
 </head>
@@ -2126,6 +2201,7 @@ if (SET.url) pull();
 <script>
 /* V14: label kartu HP + filter lipat */
 (function(){
+  var FLD=['Status','Closing','Status closing','Penanganan','Follow-up'];
   function lab(tb){
     var t=tb.closest('table'); if(!t) return;
     var ths=[].map.call(t.querySelectorAll('thead th'),function(h){return h.textContent.replace(/\s+/g,' ').trim();});
@@ -2135,13 +2211,22 @@ if (SET.url) pull();
         if(td.getAttribute('data-label')!==null) return;
         td.setAttribute('data-label',ths[i]);
         if(!ths[i]) td.classList.add('tdact');
+        else if(td.textContent.trim()==='–'&&!td.querySelector('select,input,button')) td.classList.add('emp');
+        if(FLD.indexOf(ths[i])>=0) td.classList.add('fld');
       });
+      var fl=[].filter.call(tr.cells,function(td){return td.classList.contains('fld')&&!td.classList.contains('emp');});
+      if(fl.length===1) fl[0].classList.add('full');
     });
   }
+  document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('td[data-label="Alamat"]'); if(a&&!e.target.closest('a,button,select,input')) a.classList.toggle('open');});
   [].forEach.call(document.querySelectorAll('table tbody'),function(tb){
     lab(tb);
     new MutationObserver(function(){lab(tb);}).observe(tb,{childList:true});
   });
+  var ac=document.querySelector('.top .actions');
+  if(ac){ac.classList.add('fold');var m=document.createElement('button');m.type='button';m.className='btn menutoggle';m.textContent='☰ Menu lainnya ▾';
+    m.addEventListener('click',function(){var c=ac.classList.toggle('fold');m.textContent=c?'☰ Menu lainnya ▾':'☰ Sembunyikan menu ▴';});
+    ac.appendChild(m);}
   [].forEach.call(document.querySelectorAll('.filters'),function(f){
     f.classList.add('fold');
     var b=document.createElement('button');
@@ -2152,6 +2237,14 @@ if (SET.url) pull();
     });
     f.parentNode.insertBefore(b,f);
   });
+})();
+
+(function(){
+  var h=document.querySelector('header.top'); if(!h) return;
+  var b=document.createElement('button'); b.type='button'; b.className='themefab'; b.setAttribute('aria-label','Ganti tema');
+  function paint(){ b.textContent=document.documentElement.dataset.theme==='dark'?'🌙 Gelap':'☀️ Terang'; }
+  b.addEventListener('click',function(){ var o=document.getElementById('btnTheme'); if(o) o.click(); paint(); });
+  h.appendChild(b); paint();
 })();
 </script>
 </body>
