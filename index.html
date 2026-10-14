@@ -419,6 +419,32 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   #dcBody td.fld select,#dcBody td.fld input{font-size:13px!important;padding-left:6px;padding-right:4px}
   #dcBody td.fld input[type=date]{padding-right:2px}
 }
+
+/* V14: kartu tab Audit lebih rapi */
+@media (max-width:640px){
+  #tbody tr{grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:9px 12px 10px}
+  #tbody td[data-label="Nama"]{font-size:14.5px;line-height:1.25;padding-right:84px!important}
+  #tbody td[data-label="HP"]{font-size:13px}
+  #tbody td[data-label="Alamat"]{font-size:12px;line-height:1.35}
+  #tbody td[data-label="CS"]{grid-column:1;font-size:11.5px;line-height:1.3;min-width:0}
+  #tbody td[data-label="Sumber"]{grid-column:2;font-size:11.5px;text-align:right;white-space:nowrap}
+  #tbody td[data-label="Indikasi"],#tbody td[data-label="Verifikasi"]{font-size:11.5px}
+  #tbody td.fld:not(.emp){grid-column:1/-1!important;margin-top:4px}
+  #tbody td.fld select{font-size:13.5px!important;min-height:36px;padding:4px 8px;width:100%}
+  #tbody td.fld[data-label="Closing"]:not(.emp){display:flex;flex-direction:row;align-items:center;gap:8px}
+  #tbody td.fld[data-label="Closing"]::before{flex:0 0 52px;font-size:11px}
+  #tbody td.tdact{padding-top:6px!important}
+  #tbody td.tdact .btn{min-height:34px;font-size:13px;padding:4px 10px}
+}
+/* ===== V15: daftar produk ===== */
+.prodbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px}
+.prodbar b{font-size:15px}
+tr.prow{cursor:pointer}
+tr.prow td.pname{font-weight:700;color:var(--brand);font-size:14.5px}
+tr.prow:hover td.pname{text-decoration:underline}
+@media (max-width:640px){
+  #homeBody td.pname{font-size:15.5px}
+}
 </style>
 </head>
 <body>
@@ -446,12 +472,25 @@ dialog::backdrop{backdrop-filter:blur(2px)}
   </div>
 </header>
 
+<div class="prodbar" id="prodBar" hidden><button type="button" class="btn" id="btnHome">&larr; Semua produk</button><span class="muted">Produk:</span><b id="prodName"></b></div>
+
 <nav class="tabs" role="tablist" aria-label="Tampilan">
   <button class="tab" role="tab" id="tabAudit" data-tab="audit" aria-selected="true">Audit Lead</button>
   <button class="tab" role="tab" id="tabRC" data-tab="rc" aria-selected="false">Closing Lead <span class="cnt" id="rcCount" hidden>0</span></button>
   <button class="tab" role="tab" id="tabDC" data-tab="dc" aria-selected="false">Follow-up Lead <span class="cnt" id="dcCount" hidden>0</span></button>
   <button class="tab" role="tab" id="tabAN" data-tab="an" aria-selected="false">Analisa CS DL</button>
 </nav>
+
+<div id="viewHome">
+  <section class="card panel">
+    <div class="head"><h2>Daftar produk</h2><span class="muted" id="homeNote"></span><button type="button" class="btn primary sm" id="btnAddProd">+ Tambah produk</button></div>
+    <p class="hint" style="margin:-6px 0 10px">Buat produk dengan tombol Tambah produk, lalu klik produknya. Upload CSV dari dalam produk: semua lead di CSV itu otomatis masuk ke produk tersebut, jadi angka Audit, Closing, dan Follow-up tiap produk tidak bercampur.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Produk</th><th class="n">Total lead</th><th class="n">Real</th><th class="n">Tidak real</th><th class="n">Belum diperiksa</th><th class="n">Closing</th><th class="n">Closing rate</th><th class="n">Omzet</th><th></th></tr></thead>
+      <tbody id="homeBody"></tbody>
+    </table></div>
+  </section>
+</div>
 
 <div id="viewAudit">
 
@@ -562,6 +601,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
       <div class="field"><label for="f_hp">No. HP</label><input id="f_hp"></div>
       <div class="field span2"><label for="f_alamat">Alamat</label><textarea id="f_alamat" rows="2"></textarea></div>
       <div class="field"><label for="f_sumber">Sumber</label><input id="f_sumber" placeholder="fb / ig / dll"></div>
+      <div class="field"><label for="f_produk">Produk</label><input id="f_produk" list="prodList" autocomplete="off" placeholder="mis. JOSSVIT Premium mall4"><datalist id="prodList"></datalist></div>
       <div class="field"><label for="f_status">Status lead</label>
         <select id="f_status">
           <option value="">Belum diperiksa</option>
@@ -573,7 +613,7 @@ dialog::backdrop{backdrop-filter:blur(2px)}
       <div class="field"><label for="f_metode">Metode verifikasi</label>
         <select id="f_metode"></select>
       </div>
-      <div class="field"><label for="f_waktu">Waktu verifikasi</label><input type="datetime-local" id="f_waktu"></div>
+      <div class="field span2"><label for="f_waktu">Waktu verifikasi</label><input type="datetime-local" id="f_waktu"></div>
       <div class="field span2"><label for="f_catatan">Catatan audit</label><textarea id="f_catatan" rows="2" placeholder="Ringkasan hasil cross-check, mis: nomor aktif di WA &amp; dibalas, alamat ditemukan di Maps, nama sama dengan order lain"></textarea></div>
     </div>
     <div class="flagbox" id="f_flags"></div>
@@ -630,6 +670,16 @@ dialog::backdrop{backdrop-filter:blur(2px)}
     <div class="field span2"><label for="s_url">URL Web App Google Apps Script (/exec)</label><input id="s_url" placeholder="https://script.google.com/macros/s/.../exec"></div>
     <div class="field span2" style="margin-top:10px"><label for="s_auditor">Nama auditor (dicatat di setiap lead yang kamu ubah)</label><input id="s_auditor" placeholder="mis. Rina"></div>
     <div class="field span2" style="margin-top:10px"><label for="s_token">Token keamanan (harus sama dengan TOKEN di Code.gs)</label><input id="s_token" type="password" autocomplete="off" placeholder="kosongkan jika tidak memakai token"></div>
+    <div class="hr"></div>
+    <strong>Pesan WhatsApp otomatis</strong>
+    <p class="hint">Dipakai saat tombol WA di daftar lead ditekan. Pesan terbuka di WhatsApp dan tetap bisa diedit sebelum dikirim.</p>
+    <div class="field span2"><label for="s_waAdmin">Nama kamu di pesan ({admin})</label><input id="s_waAdmin" placeholder="mis. Mila (kosong = pakai nama CS DL di lead)"></div>
+    <div class="field span2" style="margin-top:10px"><label for="s_waTpl">Isi pesan</label><textarea id="s_waTpl" rows="10"></textarea></div>
+    <p class="hint">Kode yang bisa dipakai: <b>{salam}</b> (Pagi/Siang/Sore/Malam sesuai jam), <b>{waktu}</b> (Tadi/Kemarin/3 hari lalu), <b>{nama}</b>, <b>{panggilan}</b> (nama depan), <b>{alamat}</b>, <b>{produk}</b>, <b>{hp}</b>, <b>{admin}</b>, <b>{tanggal}</b>.</p>
+    <label style="font-size:12px;font-weight:600;color:var(--muted)">Pratinjau</label>
+    <div class="info" id="s_waPrev" style="white-space:pre-wrap;margin-top:4px"></div>
+    <div style="margin:8px 0 14px"><button type="button" class="btn sm" id="s_waReset">Kembalikan ke pesan bawaan</button></div>
+    <div class="hr"></div>
     <p class="hint">Hubungkan ke Google Sheet supaya semua lead (audit, follow-up, dan closing) tersimpan permanen dan bisa dibuka dari browser lain.</p>
     <p class="hint">Auditor mengirim lead Tidak real dan lead Real milik alur CS DL (termasuk yang sudah closing) ke Sheet. Petugas Follow-up hanya melihat dan mengelola lead Tidak real, jadi tidak perlu upload CSV.</p>
     <div class="dfoot" style="margin-top:10px"><button class="btn" id="sTest">Simpan &amp; sinkron</button></div>
@@ -723,9 +773,9 @@ const TOKEN = '';
 // urutan HARUS sama persis dengan urutan kolom di sheet (posisi kolom,
 // bukan teks headernya) - lihat file Excel untuk header tampilan aslinya.
 const HEAD_DC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
-                 'dcFollowUp', 'dcStatus', 'dcCatatan', 'dcNominal', 'dcClosingAt', 'dcPic', 'dcUpdatedAt', 'auditor', 'ver'];
+                 'dcFollowUp', 'dcStatus', 'dcCatatan', 'dcNominal', 'dcClosingAt', 'dcPic', 'dcUpdatedAt', 'auditor', 'ver', 'produk'];
 const HEAD_RC = ['orderId', 'tanggal', 'nama', 'hp', 'alamat', 'cs', 'sumber', 'catatanAudit',
-                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcPic', 'auditor', 'ver'];
+                 'rcStatus', 'rcCatatan', 'rcNominal', 'rcClosingAt', 'rcPic', 'auditor', 'ver', 'produk'];
 
 // kolom yang harus disimpan sebagai teks (supaya "081..." / tanggal string
 // tidak diubah otomatis jadi angka/tanggal oleh Google Sheets)
@@ -950,10 +1000,14 @@ var DIRTY = new Set(load(LS.dirty, []));
 var DEL   = new Set(load(LS.del, []));
 var REMOTE = load('audit_lead_remote', {}); /* {orderId: 'dc'|'rc'} - sheet & kind tempat lead ini tersimpan */
 if (Array.isArray(REMOTE)) REMOTE = {}; /* migrasi dari format lama (Set of ids) - paksa sinkron ulang sekali */
-var LOCAL_ONLY = ['jam','produk','ip','catatanAsli','metodeVerif','waktuVerif','auditor','updatedAt']; /* kolom yang tidak ada di Code.gs baru, disimpan lokal saja */
+var LOCAL_ONLY = ['jam','ip','catatanAsli','metodeVerif','waktuVerif','auditor','updatedAt']; /* kolom yang tidak ada di Code.gs baru, disimpan lokal saja */
 var SET   = Object.assign({url:'', theme:''}, load(LS.set, {}));
 var F     = {day: ymd(new Date()), cs:'', status:'ANY', q:''}; /* tab Audit Lead: satu hari */
 var PS    = {period:'today', from:'', to:''};               /* tab Follow-up Lead: periode laporan */
+var NOPROD = '(Tanpa produk)';
+var PROD = SET.prod || null; /* produk yang sedang dibuka; null = halaman daftar produk */
+function pk(r){ return (r.produk || '').trim() || NOPROD; }
+function PR(){ return PROD === null ? ROWS : ROWS.filter(function(r){ return pk(r) === PROD; }); }
 
 function persist(){ store(LS.rows, ROWS); store(LS.dirty, Array.from(DIRTY)); store(LS.del, Array.from(DEL)); store('audit_lead_remote', REMOTE); store(LS.set, SET); }
 
@@ -1012,11 +1066,13 @@ function importCSV(text){
     var o = {}; head.forEach(function(h, i){ o[h] = table[r][i]; });
     if (!o.order_id && !o.name) continue;
     var lead = toLead(o); if (!lead.tanggal) nodate++;
+    if (PROD && PROD !== NOPROD) lead.produk = PROD; /* upload dari dalam produk: semua lead masuk produk ini */
     var idx = ROWS.findIndex(function(x){ return x.orderId === lead.orderId; });
     if (idx >= 0){
       var old = ROWS[idx];
       ROWS[idx] = Object.assign({}, lead, {status: old.status||'', auditor: old.auditor||'', catatan: old.catatan||'', metodeVerif: old.metodeVerif||'', waktuVerif: old.waktuVerif||'', updatedAt: old.updatedAt||'', dcStatus: old.dcStatus||'', dcPic: old.dcPic||'', dcFollowUp: old.dcFollowUp||'', dcCatatan: old.dcCatatan||'', dcUpdatedAt: old.dcUpdatedAt||'', dcNominal: old.dcNominal||'', dcClosingAt: old.dcClosingAt||'', rcStatus: old.rcStatus||'', rcPic: old.rcPic||'', rcNominal: old.rcNominal||'', rcClosingAt: old.rcClosingAt||'', rcCatatan: old.rcCatatan||'', rcDirect: !!old.rcDirect});
-      if (syncable(ROWS[idx]) && ['nama','hp','alamat','cs','sumber','tanggal'].some(function(k){ return (old[k]||'') !== (ROWS[idx][k]||''); })) DIRTY.add(lead.orderId);
+      if (old.produk || !lead.produk) ROWS[idx].produk = old.produk || '';
+      if (syncable(ROWS[idx]) && ['nama','hp','alamat','cs','sumber','tanggal','produk'].some(function(k){ return (old[k]||'') !== (ROWS[idx][k]||''); })) DIRTY.add(lead.orderId);
       updated++;
     } else {
       ROWS.push(Object.assign({}, lead, {status:'', auditor:'', catatan:'', metodeVerif:'', waktuVerif:'', updatedAt:'', dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:'', rcStatus:'', rcPic:'', rcNominal:'', rcClosingAt:'', rcCatatan:''}));
@@ -1030,7 +1086,7 @@ function importCSV(text){
 /* ---------- indikasi mencurigakan ---------- */
 function buildDupIndex(){
   var hp = {}, ip = {};
-  ROWS.forEach(function(r){
+  PR().forEach(function(r){
     if (r.hp){ var k = normHp(r.hp); hp[k] = (hp[k]||0) + 1; }
     if (r.ip) ip[r.ip] = (ip[r.ip]||0) + 1;
   });
@@ -1176,7 +1232,7 @@ document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') PICK
 
 function filtered(skipStatus){
   var q = F.q.trim().toLowerCase(), idx = buildDupIndex();
-  return ROWS.filter(function(r){
+  return PR().filter(function(r){
     if (r.tanggal !== F.day) return false;
     if (F.cs && r.cs !== F.cs) return false;
     if (!skipStatus){
@@ -1239,7 +1295,7 @@ function renderKPI(rows){
 
 function renderPending(){
   var box = $('#pendBox');
-  var older = ROWS.filter(function(r){ return (r.status === '' || r.status === 'cek') && r.tanggal && r.tanggal < F.day; });
+  var older = PR().filter(function(r){ return (r.status === '' || r.status === 'cek') && r.tanggal && r.tanggal < F.day; });
   if (!older.length){ box.hidden = true; return; }
   var first = older.reduce(function(a, r){ return r.tanggal < a ? r.tanggal : a; }, older[0].tanggal);
   box.hidden = false;
@@ -1301,12 +1357,12 @@ function renderTable(rows){
   }).join('') + pagerRow('au', sorted.length, 11);
 }
 
-function csNames(){ var s={}; ROWS.forEach(function(r){ if (r.cs) s[r.cs]=1; }); return Object.keys(s).sort(); }
-function picNames(){ var s={}; ROWS.forEach(function(r){ if (r.dcPic) s[r.dcPic]=1; if (r.rcPic) s[r.rcPic]=1; }); return Object.keys(s).sort(); }
+function csNames(){ var s={}; PR().forEach(function(r){ if (r.cs) s[r.cs]=1; }); return Object.keys(s).sort(); }
+function picNames(){ var s={}; PR().forEach(function(r){ if (r.dcPic) s[r.dcPic]=1; if (r.rcPic) s[r.rcPic]=1; }); return Object.keys(s).sort(); }
 function openPic(){
   var names = picNames();
   $('#picList').innerHTML = names.length ? names.map(function(n){
-    var cnt = ROWS.filter(function(r){ return r.dcPic === n || r.rcPic === n; }).length;
+    var cnt = PR().filter(function(r){ return r.dcPic === n || r.rcPic === n; }).length;
     return '<div class="field"><label>' + esc(n) + ' <span class="muted">(' + cnt + ' lead)</span></label>' +
       '<input type="text" data-old="' + esc(n) + '" value="' + esc(n) + '"></div>';
   }).join('') : '<p class="hint">Belum ada nama CS DL. Nama akan muncul di sini setelah diisi lewat tombol Kelola di tab Follow-up Lead / Closing Lead.</p>';
@@ -1324,7 +1380,7 @@ function savePic(){
   var changed = [];
   renames.forEach(function(pair){
     var oldName = pair[0], newName = pair[1];
-    ROWS.forEach(function(r){
+    PR().forEach(function(r){
       var hit = false;
       if (r.dcPic === oldName){ r.dcPic = newName; hit = true; }
       if (r.rcPic === oldName){ r.rcPic = newName; hit = true; }
@@ -1345,7 +1401,7 @@ function renderCsFilter(){
 function renderAll(){
   renderCsFilter();
   var base = filtered(true), rows = filtered();
-  renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); renderAN(); redrawPickers(); waSync();
+  renderHome(); renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); renderAN(); redrawPickers(); waSync();
   $('#fDay').value = F.day; $('#fStatus').value = F.status;
 }
 
@@ -1362,13 +1418,30 @@ function rpK(n){ return n >= 1e6 ? 'Rp ' + (n / 1e6).toLocaleString('id-ID', {ma
 function dcTone(k){ return !k ? 'cek' : k === 'selesai' ? 'real' : (k === 'batal' || k === 'gagal') ? 'blank' : 'run'; }
 function dcDone(r){ return r.dcStatus === 'selesai' || r.dcStatus === 'batal' || r.dcStatus === 'gagal'; }
 function dcLate(r){ return !!r.dcFollowUp && r.dcFollowUp < ymd(new Date()) && !dcDone(r); }
-function waLink(hp){
+var WA_TPL_DEFAULT = '{salam} kak 🙏\n\nSaya {admin} dari Admin JOSSVIT NEXTUGO. {waktu} sempat lihat-lihat produk kami ya kak.\n\nData pesanan kakak:\n• Nama: {nama}\n• Alamat: {alamat}\n\nKira-kira masih ada yang ingin kakak tanyakan atau mau konsultasi dulu terkait keluhannya? 🙏';
+function waTitle(t){ return String(t||'').toLowerCase().replace(/(^|\s)(\S)/g, function(m, a, b){ return a + b.toUpperCase(); }); }
+function waSalam(){ var h = new Date().getHours(); return h >= 4 && h < 11 ? 'Pagi' : h < 15 && h >= 11 ? 'Siang' : h >= 15 && h < 18 ? 'Sore' : 'Malam'; }
+function waWaktu(tgl){
+  var m = String(tgl||'').match(/^(\d{4})-(\d{2})-(\d{2})/); if (!m) return 'Kemarin';
+  var d0 = new Date(+m[1], +m[2]-1, +m[3]), t = new Date(); t = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  var n = Math.round((t - d0) / 864e5);
+  return n <= 0 ? 'Tadi' : n === 1 ? 'Kemarin' : n + ' hari lalu';
+}
+function waMessage(r){
+  r = r || {};
+  var tpl = (SET.waTpl && SET.waTpl.trim()) ? SET.waTpl : WA_TPL_DEFAULT;
+  var admin = (SET.waAdmin && SET.waAdmin.trim()) || waTitle(r.dcPic || r.rcPic || SET.auditor || '');
+  var nama = waTitle(r.nama || '');
+  var vals = {salam: waSalam(), admin: admin, nama: nama, panggilan: nama.split(' ')[0] || '', alamat: r.alamat || '', produk: r.produk || '', hp: r.hp || '', waktu: waWaktu(r.tanggal), tanggal: r.tanggal || ''};
+  return tpl.replace(/\{(\w+)\}/g, function(m, k){ return k in vals ? vals[k] : m; });
+}
+function waLink(hp, row){
   var d = String(hp||'').replace(/\D/g,''); if (!d) return '';
   if (d.charAt(0) === '0') d = '62' + d.slice(1); else if (d.charAt(0) === '8') d = '62' + d;
-  return '<a class="wa" href="https://wa.me/' + d + '" target="_blank" rel="noopener">WA</a>';
+  return '<a class="wa" href="https://wa.me/' + d + '?text=' + encodeURIComponent(waMessage(row)) + '" target="_blank" rel="noopener">WA</a>';
 }
 function dcData(){
-  var all = ROWS.filter(function(r){ return r.status === 'fake'; });
+  var all = PR().filter(function(r){ return r.status === 'fake'; });
   var q = DCF.q.trim().toLowerCase();
   var rows = all.filter(function(r){
     if (DCF.cs && r.dcPic !== DCF.cs) return false;
@@ -1445,7 +1518,7 @@ function renderDC(){
     return '<tr data-st="' + (dcLate(r) ? 'fake' : dcTone(r.dcStatus)) + '">' +
       '<td>' + esc(r.tanggal||'–') + '</td>' +
       '<td><strong>' + esc(r.nama||'–') + '</strong></td>' +
-      '<td>' + esc(r.hp||'–') + waLink(r.hp) + '</td>' +
+      '<td>' + esc(r.hp||'–') + waLink(r.hp, r) + '</td>' +
       '<td class="addr" title="' + esc(r.alamat) + '">' + esc(r.alamat||'–') + '</td>' +
       '<td>' + esc(r.dcPic||'–') + '</td>' +
       '<td><input type="date" data-act="dcFU" data-id="' + id + '" value="' + esc(r.dcFollowUp||'') + '" aria-label="Tanggal follow-up">' + (dcLate(r) ? '<div><span class="flag bad">Terlambat</span></div>' : '') + '</td>' +
@@ -1489,7 +1562,7 @@ var RCF = {cs:'', st:'aktif', q:''};
 var RCS = {period:'all', from:'', to:'', basis:'order'}; /* periode tab Closing Lead */
 var dlgRC = $('#dlgRC');
 function rcData(){
-  var raw = ROWS.filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); });
+  var raw = PR().filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); });
   var rg = rangeFor(RCS.period, RCS), fld = RCS.basis === 'closing' ? 'rcClosingAt' : 'tanggal';
   var all = RCS.period === 'all' ? raw : raw.filter(function(r){ return r[fld] && r[fld] >= rg[0] && r[fld] <= rg[1]; }); /* lead Real milik CS DL; closing langsung dari Audit (CS biasa) tidak masuk sini */
   var q = RCF.q.trim().toLowerCase();
@@ -1539,7 +1612,7 @@ function renderRC(){
     return '<tr data-st="' + rcCls(r.rcStatus) + '">' +
       '<td>' + esc(r.tanggal||'–') + '</td>' +
       '<td><strong>' + esc(r.nama||'–') + '</strong></td>' +
-      '<td>' + esc(r.hp||'–') + waLink(r.hp) + '</td>' +
+      '<td>' + esc(r.hp||'–') + waLink(r.hp, r) + '</td>' +
       '<td class="addr" title="' + esc(r.alamat) + '">' + esc(r.alamat||'–') + '</td>' +
       '<td>' + esc(r.rcPic||'–') + '</td>' +
       '<td><select class="st-' + rcCls(r.rcStatus) + '" data-act="rcStatus" data-id="' + id + '" aria-label="Status closing">' + rcOpts(r.rcStatus||'') + '</select>' + (r.rcStatus === 'closing' && (r.rcNominal || r.rcClosingAt) ? '<div class="hint">' + [r.rcClosingAt ? dm(r.rcClosingAt) : '', r.rcNominal ? rp(r.rcNominal) : ''].filter(Boolean).join(' · ') + '</div>' : '') + '</td>' +
@@ -1594,7 +1667,7 @@ var ANS = {period:'all', from:'', to:''};
 function renderAN(){
   var rg = rangeFor(ANS.period, ANS), g = {};
   function G(n){ n = n || '(Belum ada PIC)'; return g[n] || (g[n] = {n:n, dcN:0, dcC:0, rcN:0, rcC:0, omz:0, belum:0, late:0}); }
-  ROWS.forEach(function(r){
+  PR().forEach(function(r){
     if (!r.tanggal || r.tanggal < rg[0] || r.tanggal > rg[1]) return;
     if (r.status === 'fake'){ var o = G(r.dcPic); o.dcN++; if (!r.dcStatus) o.belum++; if (r.dcStatus === 'selesai'){ o.dcC++; o.omz += Number(r.dcNominal) || 0; } if (dcLate(r)) o.late++; }
     else if (r.status === 'real' && !r.rcDirect){ var q = G(r.rcPic); q.rcN++; if (!r.rcStatus) q.belum++; if (r.rcStatus === 'closing'){ q.rcC++; q.omz += Number(r.rcNominal) || 0; } }
@@ -1624,11 +1697,103 @@ function renderAN(){
   $('#anInsight').innerHTML = ins.length ? ins.map(function(x){ return '<li>' + x + '</li>'; }).join('') : '<li>Belum ada data untuk dianalisa.</li>';
 }
 function setTab(t){
-  TAB = t;
+  if (PROD === null) t = 'home'; else if (t === 'home') t = 'audit';
+  if (t !== 'home') TAB = t;
+  $('#viewHome').hidden = t !== 'home'; $('#prodBar').hidden = t === 'home';
+  document.querySelector('.tabs').hidden = (t === 'home');
+  $('.brand h1').textContent = PROD === null ? 'Audit Lead' : PROD;
+  $('.brand p').textContent = PROD === null ? 'Pilih produk untuk membuka Audit Lead, Closing Lead, dan Follow-up Lead-nya' : 'Pendataan lead dari order masuk — nama, alamat, CS, dan status real / tidak real';
+  $('#prodName').textContent = PROD || '';
   $('#viewAudit').hidden = t !== 'audit'; $('#viewDC').hidden = t !== 'dc'; $('#viewRC').hidden = t !== 'rc'; $('#viewAN').hidden = t !== 'an';
   $('#tabAudit').setAttribute('aria-selected', String(t === 'audit')); $('#tabDC').setAttribute('aria-selected', String(t === 'dc')); $('#tabRC').setAttribute('aria-selected', String(t === 'rc')); $('#tabAN').setAttribute('aria-selected', String(t === 'an'));
   ['#btnAdd','#lblChecked'].forEach(function(sel){ $(sel).hidden = t !== 'audit'; });
-  ['#btnWA','#btnExport'].forEach(function(sel){ $(sel).hidden = t === 'an'; }); /* laporan/ekspor belum tersedia untuk tab Analisa */
+  ['#btnWA','#btnExport'].forEach(function(sel){ $(sel).hidden = (t === 'an' || t === 'home'); }); /* laporan/ekspor belum tersedia untuk tab Analisa */
+}
+
+/* ---------- daftar produk ---------- */
+function renderHome(){
+  var g = {};
+  ROWS.forEach(function(r){
+    var k = pk(r), o = g[k] || (g[k] = {n:k, t:0, real:0, fake:0, blank:0, cl:0, om:0});
+    o.t++;
+    if (r.status === 'real') o.real++; else if (r.status === 'fake') o.fake++; else if (r.status === '') o.blank++;
+    if (isClosed(r)){ o.cl++; o.om += Number(r.status === 'fake' ? r.dcNominal : r.rcNominal) || 0; }
+  });
+  (SET.products || []).forEach(function(n){ if (!g[n]) g[n] = {n:n, t:0, real:0, fake:0, blank:0, cl:0, om:0}; });
+  var list = Object.keys(g).map(function(k){ return g[k]; }).sort(function(a, b){
+    if (a.n === NOPROD) return 1; if (b.n === NOPROD) return -1;
+    return a.n.localeCompare(b.n, undefined, {numeric:true});
+  });
+  $('#prodList').innerHTML = list.filter(function(o){ return o.n !== NOPROD; }).map(function(o){ return '<option value="' + esc(o.n) + '">'; }).join('');
+  $('#homeNote').textContent = list.length + ' produk · ' + ROWS.length + ' lead';
+  if (!list.length){ $('#homeBody').innerHTML = '<tr><td colspan="9">' + empty('Belum ada produk. Klik + Tambah produk untuk mulai.') + '</td></tr>'; return; }
+  $('#homeBody').innerHTML = list.map(function(o){
+    return '<tr class="prow" data-prod="' + esc(o.n) + '">' +
+      '<td class="pname">' + esc(o.n) + '</td>' +
+      '<td class="n">' + o.t + '</td><td class="n">' + o.real + '</td><td class="n">' + o.fake + '</td><td class="n">' + o.blank + '</td>' +
+      '<td class="n">' + o.cl + '</td><td class="n">' + pctS(o.cl, o.t) + '</td><td class="n">' + rp(o.om) + '</td>' +
+      '<td><div class="rowact"><button type="button" class="btn sm primary" data-open="1">Buka</button>' +
+      (o.n === NOPROD ? '<button type="button" class="btn sm" data-assign="1">Tetapkan produk</button>' : '<button type="button" class="btn sm" data-rename="1">Ganti nama</button>' + '<button type="button" class="btn sm danger" data-delprod="1">Hapus</button>') + '</div></td></tr>';
+  }).join('');
+}
+function openProd(name){
+  PROD = name; SET.prod = name;
+  F.cs = ''; F.status = 'ANY'; F.q = ''; DCF.cs = ''; DCF.q = ''; RCF.cs = ''; RCF.q = '';
+  $('#fQ').value = ''; $('#dcQ').value = ''; $('#rcQ').value = '';
+  persist(); setTab('audit'); renderAll(); window.scrollTo(0, 0);
+}
+function goHome(){
+  PROD = null; SET.prod = '';
+  persist(); setTab('home'); renderAll(); window.scrollTo(0, 0);
+}
+function prodExists(n){
+  var l = n.toLowerCase();
+  return (SET.products || []).concat(ROWS.map(function(r){ return (r.produk || '').trim(); })).some(function(x){ return x && x.toLowerCase() === l; });
+}
+function addProd(){
+  var name = (prompt('Nama produk baru:', '') || '').trim();
+  if (!name) return;
+  if (name === NOPROD || prodExists(name)) return toast('Produk "' + name + '" sudah ada.');
+  SET.products = (SET.products || []).concat(name);
+  persist(); openProd(name);
+}
+function renameProd(old){
+  var name = (prompt('Nama baru untuk produk "' + old + '":', old) || '').trim();
+  if (!name || name === old) return;
+  if (prodExists(name) && name.toLowerCase() !== old.toLowerCase()) return toast('Produk "' + name + '" sudah ada.');
+  var rows = ROWS.filter(function(r){ return pk(r) === old; }), now = new Date().toISOString();
+  rows.forEach(function(r){ r.produk = name; r.updatedAt = now; r.ver = String(Date.now()); });
+  SET.products = (SET.products || []).map(function(n){ return n === old ? name : n; });
+  if (SET.prod === old) SET.prod = name;
+  persist(); renderAll();
+  toast('Nama produk diganti (' + rows.length + ' lead ikut berubah).');
+  if (rows.length) pushMany(rows);
+}
+async function delProd(name){
+  var rows = ROWS.filter(function(r){ return pk(r) === name; });
+  if (rows.length){
+    var ans = prompt('Produk "' + name + '" punya ' + rows.length + ' lead. Menghapus produk ini juga MENGHAPUS semua lead-nya (termasuk di Google Sheet) dan tidak bisa dibatalkan.\n\nKetik nama produknya untuk melanjutkan:', '');
+    if ((ans || '').trim() !== name) return toast('Dibatalkan. Nama produk yang diketik tidak sama.');
+  } else if (!confirm('Hapus produk "' + name + '"?')) return;
+  var ids = rows.map(function(r){ return r.orderId; });
+  SET.products = (SET.products || []).filter(function(n){ return n !== name; });
+  if (SET.prod === name) SET.prod = '';
+  ROWS = ROWS.filter(function(r){ return pk(r) !== name; });
+  ids.forEach(function(id){ DIRTY.delete(id); });
+  persist(); renderAll();
+  toast('Produk "' + name + '" dihapus' + (ids.length ? ' beserta ' + ids.length + ' lead.' : '.'));
+  for (var i = 0; i < ids.length; i++){ if (REMOTE[ids[i]]) await pushDelete(ids[i]); }
+}
+function assignProd(){
+  var rows = ROWS.filter(function(r){ return !(r.produk || '').trim(); });
+  if (!rows.length) return;
+  var name = (prompt('Nama produk untuk ' + rows.length + ' lead yang belum punya produk:', '') || '').trim();
+  if (!name) return;
+  var now = new Date().toISOString();
+  rows.forEach(function(r){ r.produk = name; r.updatedAt = now; r.ver = String(Date.now()); });
+  persist(); renderAll();
+  toast(rows.length + ' lead dimasukkan ke produk "' + name + '".');
+  pushMany(rows);
 }
 
 /* ---------- laporan whatsapp ---------- */
@@ -1650,7 +1815,7 @@ function waAuditText(){
   if (only) fp.push('hanya yang sudah dicrosscek');
   var list = Object.keys(g).map(function(k){ return g[k]; }).sort(function(a, b){ return b.t - a.t; });
   var DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
-  var L = ['*LAPORAN AUDIT LEAD*',
+  var L = ['*LAPORAN AUDIT LEAD*' + (PROD ? ' - ' + PROD : ''),
     fmtD(F.day) + (fp.length ? ' · ' + fp.join(' · ') : ''),
     'Dibuat ' + waNow(),
     DIV,
@@ -1675,8 +1840,8 @@ var WAS = {period:'today', from:'', to:''}, WASIG = '';
 function waCombinedText(){
   var rg = getRange(WAS), inR = function(d){ return !!d && d >= rg[0] && d <= rg[1]; };
   var sum = function(a, f){ return a.reduce(function(t, r){ return t + (Number(r[f]) || 0); }, 0); };
-  var fake = ROWS.filter(function(r){ return r.status === 'fake'; });
-  var real = ROWS.filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); });
+  var fake = PR().filter(function(r){ return r.status === 'fake'; });
+  var real = PR().filter(function(r){ return r.status === 'real' && !(r.rcStatus === 'closing' && r.rcDirect); });
   var dcIn = fake.filter(function(r){ return inR(r.tanggal); });
   var dcHandled = fake.filter(function(r){ return r.dcUpdatedAt && inR(ymd(new Date(r.dcUpdatedAt))); }).length;
   var dcCl = fake.filter(function(r){ return r.dcStatus === 'selesai' && inR(r.dcClosingAt); });
@@ -1693,7 +1858,7 @@ function waCombinedText(){
   rcIn.forEach(function(r){ var o = G(r.rcPic); o.t++; if (r.rcStatus === 'closing') o.cc++; });
   var per = Object.keys(g).map(function(k){ return g[k]; }).sort(function(a, b){ return b.om - a.om || b.cc - a.cc; });
   var DIV = '▬▬▬▬▬▬▬▬▬▬▬▬▬▬';
-  var L = ['*LAPORAN CS DL*',
+  var L = ['*LAPORAN CS DL*' + (PROD ? ' - ' + PROD : ''),
     'Periode: ' + (WAS.period === 'all' ? 'Semua data' : rangeText(WAS)),
     'Dibuat ' + waNow(),
     DIV,
@@ -1755,21 +1920,21 @@ function mergeParts(local, srv){
 /* Code.gs baru cuma simpan sebagian kolom per sheet - petakan baris lokal -> baris yang dikirim */
 function toDcRow(r){
   return {orderId:r.orderId, tanggal:r.tanggal||'', nama:r.nama||'', hp:r.hp||'', alamat:r.alamat||'', cs:r.cs||'', sumber:r.sumber||'',
-    catatanAudit:r.catatan||'', dcFollowUp:r.dcFollowUp||'', dcStatus:r.dcStatus||'', dcCatatan:r.dcCatatan||'', dcNominal:r.dcNominal||'', dcClosingAt:r.dcClosingAt||'', dcPic:r.dcPic||'', dcUpdatedAt:r.dcUpdatedAt||''};
+    catatanAudit:r.catatan||'', dcFollowUp:r.dcFollowUp||'', dcStatus:r.dcStatus||'', dcCatatan:r.dcCatatan||'', dcNominal:r.dcNominal||'', dcClosingAt:r.dcClosingAt||'', dcPic:r.dcPic||'', dcUpdatedAt:r.dcUpdatedAt||'', produk:r.produk||''};
 }
 function toRcRow(r){
   return {orderId:r.orderId, tanggal:r.tanggal||'', nama:r.nama||'', hp:r.hp||'', alamat:r.alamat||'', cs:r.cs||'', sumber:r.sumber||'',
-    catatanAudit:r.catatan||'', rcStatus:r.rcStatus||'', rcCatatan:r.rcCatatan||'', rcNominal:r.rcNominal||'', rcClosingAt:r.rcClosingAt||'', rcPic:r.rcPic||''};
+    catatanAudit:r.catatan||'', rcStatus:r.rcStatus||'', rcCatatan:r.rcCatatan||'', rcNominal:r.rcNominal||'', rcClosingAt:r.rcClosingAt||'', rcPic:r.rcPic||'', produk:r.produk||''};
 }
 /* ...dan sebaliknya, baris dari Sheet -> bentuk lengkap lokal (kolom lokal-saja diisi kosong dulu, ditimpa data lokal lewat overlayLocalOnly) */
 function fromDcRow(o){
-  return {orderId:o.orderId, tanggal:o.tanggal||'', jam:'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:'', ip:'',
+  return {orderId:o.orderId, tanggal:o.tanggal||'', jam:'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:o.produk||'', ip:'',
     catatanAsli:'', status:'fake', metodeVerif:'', waktuVerif:'', auditor:'', catatan:o.catatanAudit||'', updatedAt:'',
     dcStatus:o.dcStatus||'', dcPic:o.dcPic||'', dcFollowUp:o.dcFollowUp||'', dcCatatan:o.dcCatatan||'', dcUpdatedAt:o.dcUpdatedAt||'', dcNominal:o.dcNominal||'', dcClosingAt:o.dcClosingAt||'',
     rcStatus:'', rcPic:'', rcNominal:'', rcClosingAt:'', rcCatatan:''};
 }
 function fromRcRow(o){
-  return {orderId:o.orderId, tanggal:o.tanggal||'', jam:'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:'', ip:'',
+  return {orderId:o.orderId, tanggal:o.tanggal||'', jam:'', nama:o.nama||'', hp:o.hp||'', alamat:o.alamat||'', cs:o.cs||'', sumber:o.sumber||'', produk:o.produk||'', ip:'',
     catatanAsli:'', status:'real', metodeVerif:'', waktuVerif:'', auditor:'', catatan:o.catatanAudit||'', updatedAt:'',
     dcStatus:'', dcPic:'', dcFollowUp:'', dcCatatan:'', dcUpdatedAt:'', dcNominal:'', dcClosingAt:'',
     rcStatus:o.rcStatus||'', rcPic:o.rcPic||'', rcNominal:o.rcNominal||'', rcClosingAt:o.rcClosingAt||'', rcCatatan:o.rcCatatan||''};
@@ -1780,6 +1945,7 @@ function overlayLocalOnly(remoteRow){
   var out = Object.assign({}, remoteRow);
   if (local && !out.dcUpdatedAt && local.dcUpdatedAt) out.dcUpdatedAt = local.dcUpdatedAt; /* fallback bila Code.gs lama belum di-deploy ulang */
   if (local) LOCAL_ONLY.forEach(function(f){ if (local[f]) out[f] = local[f]; });
+  if (local && !out.produk && local.produk) out.produk = local.produk; /* Sheet lama belum punya kolom produk */
   return out;
 }
 function toAuRow(r){
@@ -1909,6 +2075,8 @@ async function pull0(){
     });
     var SV = {}; serverRows.forEach(function(r){ SV[r.orderId] = r.ver; });
     merged.forEach(function(r){ if (SV[r.orderId] !== undefined && !DIRTY.has(r.orderId)) r._base = SV[r.orderId]; }); /* versi Sheet saat dibaca = dasar deteksi bentrok */
+    var SP = {}; serverRows.forEach(function(r){ SP[r.orderId] = r.produk || ''; });
+    merged.forEach(function(r){ if (SP[r.orderId] === '' && r.produk && (kindOf(r) === 'dc' || kindOf(r) === 'rc')) DIRTY.add(r.orderId); }); /* lead lama di Sheet belum punya produk: lengkapi */
     var newRemote = {};
     merged.forEach(function(r){ if (serverIds.has(r.orderId)){ var k = kindOf(r); if (k) newRemote[r.orderId] = k; } });
     REMOTE = newRemote;
@@ -1925,7 +2093,7 @@ function handleFile(file){
     try{
       var res = importCSV(String(reader.result));
       var days = ROWS.filter(function(r){ return r.tanggal; }).map(function(r){ return r.tanggal; }).sort();
-      if (days.length && !ROWS.some(function(r){ return r.tanggal === F.day; })) F.day = days[days.length - 1];
+      if (days.length && !PR().some(function(r){ return r.tanggal === F.day; })) F.day = days[days.length - 1];
       renderAll();
       toast('Impor selesai: ' + res.added + ' lead baru, ' + res.updated + ' diperbarui.' + (res.nodate ? ' ⚠️ ' + res.nodate + ' baris tanpa tanggal terbaca (cek format created_at), tidak akan tampil di tanggal mana pun.' : ''));
       var toSend = ROWS.filter(function(r){ return DIRTY.has(r.orderId) && syncable(r); });
@@ -1949,6 +2117,7 @@ function openForm(id){
   $('#f_hp').value = r ? r.hp : '';
   $('#f_alamat').value = r ? r.alamat : '';
   $('#f_sumber').value = r ? r.sumber : '';
+  $('#f_produk').value = r ? (r.produk || '') : (PROD && PROD !== NOPROD ? PROD : '');
   $('#f_status').value = r ? r.status : '';
   $('#f_metode').innerHTML = metOpts(r ? (r.metodeVerif || '') : '');
   $('#f_waktu').value = r ? (r.waktuVerif || '') : '';
@@ -1970,7 +2139,7 @@ async function saveForm(ev){
     nama: $('#f_nama').value.trim(), hp: $('#f_hp').value.trim(), alamat: $('#f_alamat').value.trim(),
     sumber: $('#f_sumber').value.trim(), status: $('#f_status').value, catatan: $('#f_catatan').value.trim(),
     metodeVerif: metode, waktuVerif: waktu,
-    produk: old ? old.produk : '', ip: old ? old.ip : '', jam: old ? old.jam : '', catatanAsli: old ? old.catatanAsli : '',
+    produk: $('#f_produk').value.trim(), ip: old ? old.ip : '', jam: old ? old.jam : '', catatanAsli: old ? old.catatanAsli : '',
     updatedAt: new Date().toISOString()
   });
   if (old && old.status === 'real' && old.rcDirect && r.status !== 'real'){ r.rcStatus = ''; r.rcNominal = ''; r.rcClosingAt = ''; r.rcCatatan = ''; r.rcDirect = false; }
@@ -2043,11 +2212,28 @@ function bind(){
   $('#btnSync').addEventListener('click', function(){ if (!SET.url){ toast('Isi URL Web App di Pengaturan dulu.'); return; } pull(); });
   $('#btnExport').addEventListener('click', function(){ if (TAB === 'dc') exportDC(); else if (TAB === 'rc') exportRC(); else exportCSV(); });
   $('#btnTheme').addEventListener('click', function(){ SET.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; persist(); applyTheme(); });
-  $('#btnSetup').addEventListener('click', function(){ $('#s_url').value = SET.url; $('#s_token').value = SET.token || ''; $('#s_auditor').value = SET.auditor || ''; $('#codeBox').value = $('#codegs').textContent.trim(); dlgSetup.showModal(); });
+  $('#btnSetup').addEventListener('click', function(){ $('#s_url').value = SET.url; $('#s_token').value = SET.token || ''; $('#s_auditor').value = SET.auditor || ''; $('#codeBox').value = $('#codegs').textContent.trim(); $('#s_waAdmin').value = SET.waAdmin || ''; $('#s_waTpl').value = SET.waTpl || WA_TPL_DEFAULT; waPrev(); dlgSetup.showModal(); });
+  function waPrev(){
+    var sample = ROWS.filter(function(x){ return x.hp; })[0] || {nama:'Budi Santoso', alamat:'Jl. Contoh No. 1, Makassar', tanggal: ymd(new Date(Date.now() - 864e5)), produk:'Produk', dcPic:''};
+    var t = SET.waTpl; SET.waTpl = $('#s_waTpl').value; var a = SET.waAdmin; SET.waAdmin = $('#s_waAdmin').value;
+    var out = waMessage(sample); SET.waTpl = t; SET.waAdmin = a; $('#s_waPrev').textContent = out;
+  }
+  function waSave(){ var v = $('#s_waTpl').value; SET.waTpl = (v.trim() === WA_TPL_DEFAULT.trim()) ? '' : v; SET.waAdmin = $('#s_waAdmin').value.trim(); persist(); waPrev(); renderAll(); }
+  $('#s_waTpl').addEventListener('input', waSave); $('#s_waAdmin').addEventListener('input', waSave);
+  $('#s_waReset').addEventListener('click', function(){ $('#s_waTpl').value = WA_TPL_DEFAULT; waSave(); });
   ['#tbody','#dcBody','#rcBody'].forEach(function(sel){ $(sel).addEventListener('click', function(ev){
     var b = ev.target.closest('button[data-pg]'); if (!b || b.disabled) return;
     PG[b.dataset.pg] += Number(b.dataset.dir); renderAll();
   }); });
+  $('#homeBody').addEventListener('click', function(ev){
+    var tr0 = ev.target.closest('tr[data-prod]');
+    if (tr0 && ev.target.closest('button[data-rename]')) return renameProd(tr0.dataset.prod);
+    if (tr0 && ev.target.closest('button[data-delprod]')) return delProd(tr0.dataset.prod);
+    if (ev.target.closest('button[data-assign]')) return assignProd();
+    var tr = ev.target.closest('tr[data-prod]'); if (tr) openProd(tr.dataset.prod);
+  });
+  $('#btnHome').addEventListener('click', goHome);
+  $('#btnAddProd').addEventListener('click', addProd);
   $('#btnPic').addEventListener('click', openPic);
   $('#picSave').addEventListener('click', savePic);
   $('#picClose').addEventListener('click', function(){ $('#dlgPic').close(); });
