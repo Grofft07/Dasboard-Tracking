@@ -445,6 +445,66 @@ tr.prow:hover td.pname{text-decoration:underline}
 @media (max-width:640px){
   #homeBody td.pname{font-size:15.5px}
 }
+/* ===== V19: tampilan lebih tenang & elegan ===== */
+:root{
+  --bg:#f4f5f8; --panel:#ffffff; --ink:#1b2130; --muted:#6b7385; --line:#e3e6ed; --soft:#f1f3f7;
+  --brand:#3b4fb8; --run:#41609f; --runbg:#e8edf6; --hero:#1f2a44;
+  --ok:#2f7d62; --okbg:#e7f1ec; --warn:#94681f; --warnbg:#f6eedd; --bad:#ac4a41; --badbg:#f5e8e6; --nbg:#eceef3; --nfg:#667086;
+  --shadow:0 1px 2px rgba(27,33,48,.05);
+  --radius:12px;
+}
+[data-theme="dark"]{
+  --bg:#0f131c; --panel:#171c28; --ink:#e6e9f1; --muted:#8b93a7; --line:#262d3d; --soft:#1e2433;
+  --brand:#8d9ce0; --run:#7e9ad6; --runbg:#1d2842; --hero:#182034;
+  --ok:#5db596; --okbg:#173029; --warn:#d6a85a; --warnbg:#332a14; --bad:#e08378; --badbg:#3a2220; --nbg:#222a3a; --nfg:#9ba5bd;
+  --shadow:none;
+}
+body{background:var(--bg)}
+.card,.kpi,.tab,.top,dialog{animation:none}
+
+/* header */
+.top{background:var(--hero);box-shadow:none}
+.top::before{display:none}
+.top .brand h1{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#fff}
+.top .btn.primary{background:#fff;border-color:#fff;color:var(--hero)}
+.top .btn.primary:hover{transform:none;box-shadow:none;filter:brightness(.95)}
+
+/* tombol & tab */
+.btn:hover{transform:none;box-shadow:none}
+.btn.primary{background:var(--brand);border-color:var(--brand);box-shadow:none}
+.btn.primary:hover{filter:brightness(1.08);box-shadow:none}
+.tab[aria-selected="true"]{background:var(--brand);box-shadow:none}
+.tab[aria-selected="true"] .cnt{animation:none}
+.sync[data-state="busy"]{animation:none}
+#toast{background:var(--ink)}
+.dp-d.edge,.dp-pre button.on{box-shadow:none}
+.panel h2::before{background:var(--brand)}
+
+/* kartu ringkasan (semua tab) */
+.kpis{grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
+.k-total{--c:var(--brand)}
+.k-flag{--c:var(--muted)}
+.kpi{background:var(--panel);border:1px solid var(--line);border-top:1px solid var(--line);border-radius:12px;box-shadow:none;padding:16px 18px;transition:border-color .15s,background .15s}
+.kpi::after{display:none}
+.kpi:hover{transform:none;box-shadow:none;border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+.kpi:active{transform:none}
+.kpi.on{background:color-mix(in srgb,var(--c) 6%,var(--panel));border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
+.kpi.hero{background:var(--panel);border:1px solid var(--line)}
+.kpi.hero.on{background:color-mix(in srgb,var(--c) 6%,var(--panel));border-color:var(--c)}
+.kpi .lbl{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+.kpi .lbl::before{content:"" !important;flex:none;width:8px;height:8px;border-radius:50%;background:var(--c)}
+.kpi .val,.kpi.hero .val,.k-total .val{color:var(--ink);font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.kpi.hero .val{font-size:30px}
+.kpi .sub{color:var(--muted);font-size:12.5px;margin-top:6px}
+
+/* progres */
+.s-run{background:var(--run);animation:none}
+.bar b{background:var(--ok)}
+.seg{box-shadow:none}
+.legend button:hover{transform:none}
+.pill:hover,.flag:hover{transform:none}
+.periodbar{border-left:3px solid var(--run)}
+@media (max-width:640px){ .kpi.hero .val{font-size:28px} }
 </style>
 </head>
 <body>
