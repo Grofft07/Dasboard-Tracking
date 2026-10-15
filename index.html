@@ -738,7 +738,7 @@ body{background:var(--bg)}
     <p class="hint">Dipakai saat tombol WA di daftar lead ditekan. Pesan terbuka di WhatsApp dan tetap bisa diedit sebelum dikirim.</p>
     <div class="field span2"><label for="s_waAdmin">Nama kamu di pesan ({admin})</label><input id="s_waAdmin" placeholder="mis. Mila (kosong = pakai nama CS DL di lead)"></div>
     <div class="field span2" style="margin-top:10px"><label for="s_waTpl">Isi pesan</label><textarea id="s_waTpl" rows="10"></textarea></div>
-    <p class="hint">Kode yang bisa dipakai: <b>{salam}</b> (Pagi/Siang/Sore/Malam sesuai jam), <b>{waktu}</b> (Tadi/Kemarin/3 hari lalu), <b>{nama}</b>, <b>{panggilan}</b> (nama depan), <b>{alamat}</b>, <b>{produk}</b>, <b>{hp}</b>, <b>{admin}</b>, <b>{tanggal}</b>.</p>
+    <p class="hint">Kode yang bisa dipakai: <b>{salam}</b> (Pagi/Siang/Sore/Malam sesuai jam), <b>{waktu}</b> (Tadi/Kemarin/3 hari lalu), <b>{nama}</b>, <b>{panggilan}</b> (nama depan), <b>{alamat}</b>, <b>{produk}</b> (nama produk lead itu), <b>{PRODUK}</b> (sama, huruf besar), <b>{hp}</b>, <b>{admin}</b>, <b>{tanggal}</b>.</p>
     <label style="font-size:12px;font-weight:600;color:var(--muted)">Pratinjau</label>
     <div class="info" id="s_waPrev" style="white-space:pre-wrap;margin-top:4px"></div>
     <div style="margin:8px 0 14px"><button type="button" class="btn sm" id="s_waReset">Kembalikan ke pesan bawaan</button></div>
@@ -1484,7 +1484,7 @@ function rpK(n){ return n >= 1e6 ? 'Rp ' + (n / 1e6).toLocaleString('id-ID', {ma
 function dcTone(k){ return !k ? 'cek' : k === 'selesai' ? 'real' : (k === 'batal' || k === 'gagal') ? 'blank' : 'run'; }
 function dcDone(r){ return r.dcStatus === 'selesai' || r.dcStatus === 'batal' || r.dcStatus === 'gagal'; }
 function dcLate(r){ return !!r.dcFollowUp && r.dcFollowUp < ymd(new Date()) && !dcDone(r); }
-var WA_TPL_DEFAULT = '{salam} kak 🙏\n\nSaya {admin} dari Admin JOSSVIT NEXTUGO. {waktu} sempat lihat-lihat produk kami ya kak.\n\nData pesanan kakak:\n• Nama: {nama}\n• Alamat: {alamat}\n\nKira-kira masih ada yang ingin kakak tanyakan atau mau konsultasi dulu terkait keluhannya? 🙏';
+var WA_TPL_DEFAULT = '{salam} kak 🙏\n\nSaya {admin} dari Admin {PRODUK}. {waktu} sempat lihat-lihat produk kami ya kak.\n\nData pesanan kakak:\n• Nama: {nama}\n• Alamat: {alamat}\n\nKira-kira masih ada yang ingin kakak tanyakan atau mau konsultasi dulu terkait keluhannya? 🙏';
 function waTitle(t){ return String(t||'').toLowerCase().replace(/(^|\s)(\S)/g, function(m, a, b){ return a + b.toUpperCase(); }); }
 function waSalam(){ var h = new Date().getHours(); return h >= 4 && h < 11 ? 'Pagi' : h < 15 && h >= 11 ? 'Siang' : h >= 15 && h < 18 ? 'Sore' : 'Malam'; }
 function waWaktu(tgl){
@@ -1498,7 +1498,8 @@ function waMessage(r){
   var tpl = (SET.waTpl && SET.waTpl.trim()) ? SET.waTpl : WA_TPL_DEFAULT;
   var admin = (SET.waAdmin && SET.waAdmin.trim()) || waTitle(r.dcPic || r.rcPic || SET.auditor || '');
   var nama = waTitle(r.nama || '');
-  var vals = {salam: waSalam(), admin: admin, nama: nama, panggilan: nama.split(' ')[0] || '', alamat: r.alamat || '', produk: r.produk || '', hp: r.hp || '', waktu: waWaktu(r.tanggal), tanggal: r.tanggal || ''};
+  var prod = (r.produk || '').trim() || (PROD && PROD !== NOPROD ? PROD : '');
+  var vals = {salam: waSalam(), admin: admin, nama: nama, panggilan: nama.split(' ')[0] || '', alamat: r.alamat || '', produk: prod, PRODUK: prod.toUpperCase(), hp: r.hp || '', waktu: waWaktu(r.tanggal), tanggal: r.tanggal || ''};
   return tpl.replace(/\{(\w+)\}/g, function(m, k){ return k in vals ? vals[k] : m; });
 }
 function waLink(hp, row){
