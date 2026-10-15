@@ -1121,7 +1121,7 @@ function importCSV(text){
   var need = ['order_id','name','phone','address','created_at','handled_by'];
   var missing = need.filter(function(k){ return head.indexOf(k) < 0; });
   if (missing.length) throw new Error('Kolom tidak ditemukan: ' + missing.join(', '));
-  var added = 0, updated = 0, nodate = 0;
+  var added = 0, updated = 0, nodate = 0, other = 0;
   for (var r = 1; r < table.length; r++){
     var o = {}; head.forEach(function(h, i){ o[h] = table[r][i]; });
     if (!o.order_id && !o.name) continue;
@@ -1130,6 +1130,7 @@ function importCSV(text){
     var idx = ROWS.findIndex(function(x){ return x.orderId === lead.orderId; });
     if (idx >= 0){
       var old = ROWS[idx];
+      if (PROD && PROD !== NOPROD && (old.produk || '').trim() && pk(old) !== PROD) other++;
       ROWS[idx] = Object.assign({}, lead, {status: old.status||'', auditor: old.auditor||'', catatan: old.catatan||'', metodeVerif: old.metodeVerif||'', waktuVerif: old.waktuVerif||'', updatedAt: old.updatedAt||'', dcStatus: old.dcStatus||'', dcPic: old.dcPic||'', dcFollowUp: old.dcFollowUp||'', dcCatatan: old.dcCatatan||'', dcUpdatedAt: old.dcUpdatedAt||'', dcNominal: old.dcNominal||'', dcClosingAt: old.dcClosingAt||'', rcStatus: old.rcStatus||'', rcPic: old.rcPic||'', rcNominal: old.rcNominal||'', rcClosingAt: old.rcClosingAt||'', rcCatatan: old.rcCatatan||'', rcDirect: !!old.rcDirect});
       if (old.produk || !lead.produk) ROWS[idx].produk = old.produk || '';
       if (syncable(ROWS[idx]) && ['nama','hp','alamat','cs','sumber','tanggal','produk'].some(function(k){ return (old[k]||'') !== (ROWS[idx][k]||''); })) DIRTY.add(lead.orderId);
@@ -1140,7 +1141,7 @@ function importCSV(text){
     }
   }
   persist();
-  return {added: added, updated: updated, nodate: nodate};
+  return {added: added, updated: updated, nodate: nodate, other: other};
 }
 
 /* ---------- indikasi mencurigakan ---------- */
@@ -1458,7 +1459,9 @@ function renderCsFilter(){
   sel.innerHTML = '<option value="">Semua CS</option>' + names.map(function(n){ return '<option' + (n===F.cs?' selected':'') + '>' + esc(n) + '</option>'; }).join('');
   $('#csList').innerHTML = names.map(function(n){ return '<option value="' + esc(n) + '">'; }).join('');
 }
+function prodKnown(n){ return (SET.products || []).indexOf(n) >= 0 || ROWS.some(function(r){ return pk(r) === n; }); }
 function renderAll(){
+  if (PROD !== null && !prodKnown(PROD)){ PROD = null; SET.prod = ''; persist(); setTab('home'); }
   renderCsFilter();
   var base = filtered(true), rows = filtered();
   renderHome(); renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); renderAN(); redrawPickers(); waSync();
@@ -1764,6 +1767,7 @@ function setTab(t){
   $('.brand h1').textContent = PROD === null ? 'Audit Lead' : PROD;
   $('.brand p').textContent = PROD === null ? 'Pilih produk untuk membuka Audit Lead, Closing Lead, dan Follow-up Lead-nya' : 'Pendataan lead dari order masuk — nama, alamat, CS, dan status real / tidak real';
   $('#prodName').textContent = PROD || '';
+  $('#btnUpload').hidden = (SET.role === 'dc') || t === 'home';
   $('#viewAudit').hidden = t !== 'audit'; $('#viewDC').hidden = t !== 'dc'; $('#viewRC').hidden = t !== 'rc'; $('#viewAN').hidden = t !== 'an';
   $('#tabAudit').setAttribute('aria-selected', String(t === 'audit')); $('#tabDC').setAttribute('aria-selected', String(t === 'dc')); $('#tabRC').setAttribute('aria-selected', String(t === 'rc')); $('#tabAN').setAttribute('aria-selected', String(t === 'an'));
   ['#btnAdd','#lblChecked'].forEach(function(sel){ $(sel).hidden = t !== 'audit'; });
@@ -1823,22 +1827,32 @@ function addProd(){
   SET.products = (SET.products || []).concat(name);
   persist(); openProd(name);
 }
+function canonProd(n){
+  var l = n.toLowerCase(), all = (SET.products || []).concat(ROWS.map(function(r){ return (r.produk || '').trim(); }));
+  for (var i = 0; i < all.length; i++){ if (all[i] && all[i].toLowerCase() === l) return all[i]; }
+  return n;
+}
 function renameProd(old){
-  var name = (prompt('Nama baru untuk produk "' + old + '":', old) || '').trim();
-  if (!name || name === old) return;
-  if (prodExists(name) && name.toLowerCase() !== old.toLowerCase()) return toast('Produk "' + name + '" sudah ada.');
+  var name = (prompt('Nama baru untuk produk "' + old + '".\nKalau Anda ketik nama produk yang sudah ada, kedua produk akan digabung:', old) || '').trim();
+  if (!name || name === old || name === NOPROD) return;
   var rows = ROWS.filter(function(r){ return pk(r) === old; }), now = new Date().toISOString();
+  var merge = prodExists(name) && name.toLowerCase() !== old.toLowerCase();
+  if (merge){
+    name = canonProd(name);
+    if (!confirm('Produk "' + name + '" sudah ada.\nGabungkan ' + rows.length + ' lead dari "' + old + '" ke "' + name + '"? Produk "' + old + '" akan hilang dari daftar.')) return;
+  }
   rows.forEach(function(r){ r.produk = name; r.updatedAt = now; r.ver = String(Date.now()); });
-  SET.products = (SET.products || []).map(function(n){ return n === old ? name : n; });
+  var list = (SET.products || []).map(function(n){ return n === old ? name : n; });
+  SET.products = list.filter(function(n, i){ return list.indexOf(n) === i; });
   if (SET.prod === old) SET.prod = name;
   persist(); renderAll();
-  toast('Nama produk diganti (' + rows.length + ' lead ikut berubah).');
+  toast((merge ? 'Digabung ke "' + name + '"' : 'Nama produk diganti') + ' (' + rows.length + ' lead ikut berubah).');
   if (rows.length) pushMany(rows);
 }
 async function delProd(name){
   var rows = ROWS.filter(function(r){ return pk(r) === name; });
   if (rows.length){
-    var ans = prompt('Produk "' + name + '" punya ' + rows.length + ' lead. Menghapus produk ini juga MENGHAPUS semua lead-nya (termasuk di Google Sheet) dan tidak bisa dibatalkan.\n\nKetik nama produknya untuk melanjutkan:', '');
+    var ans = prompt('Produk "' + name + '" punya ' + rows.length + ' lead. Menghapus produk ini juga MENGHAPUS semua lead-nya (termasuk di Google Sheet) dan tidak bisa dibatalkan. Penghapusan di Sheet dikirim satu per satu, jadi produk dengan ratusan lead bisa memakan beberapa menit; tunggu sampai indikator Tersinkron.\n\nKetik nama produknya untuk melanjutkan:', '');
     if ((ans || '').trim() !== name) return toast('Dibatalkan. Nama produk yang diketik tidak sama.');
   } else if (!confirm('Hapus produk "' + name + '"?')) return;
   var ids = rows.map(function(r){ return r.orderId; });
@@ -1854,7 +1868,8 @@ function assignProd(){
   var rows = ROWS.filter(function(r){ return !(r.produk || '').trim(); });
   if (!rows.length) return;
   var name = (prompt('Nama produk untuk ' + rows.length + ' lead yang belum punya produk:', '') || '').trim();
-  if (!name) return;
+  if (!name || name === NOPROD) return;
+  name = canonProd(name);
   var now = new Date().toISOString();
   rows.forEach(function(r){ r.produk = name; r.updatedAt = now; r.ver = String(Date.now()); });
   persist(); renderAll();
@@ -2154,14 +2169,15 @@ async function pull0(){
 
 /* ---------- upload ---------- */
 function handleFile(file){
+  if (PROD === null || PROD === NOPROD){ toast('Buka produknya dulu, baru upload CSV.'); return; }
   var reader = new FileReader();
   reader.onload = function(){
     try{
       var res = importCSV(String(reader.result));
-      var days = ROWS.filter(function(r){ return r.tanggal; }).map(function(r){ return r.tanggal; }).sort();
+      var days = PR().filter(function(r){ return r.tanggal; }).map(function(r){ return r.tanggal; }).sort();
       if (days.length && !PR().some(function(r){ return r.tanggal === F.day; })) F.day = days[days.length - 1];
       renderAll();
-      toast('Impor selesai: ' + res.added + ' lead baru, ' + res.updated + ' diperbarui.' + (res.nodate ? ' ⚠️ ' + res.nodate + ' baris tanpa tanggal terbaca (cek format created_at), tidak akan tampil di tanggal mana pun.' : ''));
+      toast('Impor selesai: ' + res.added + ' lead baru, ' + res.updated + ' diperbarui.' + (res.other ? ' ' + res.other + ' lead sudah ada di produk lain dan tidak dipindah.' : '') + (res.nodate ? ' ⚠️ ' + res.nodate + ' baris tanpa tanggal terbaca (cek format created_at), tidak akan tampil di tanggal mana pun.' : ''));
       var toSend = ROWS.filter(function(r){ return DIRTY.has(r.orderId) && syncable(r); });
       ROWS.forEach(function(r){ if (!syncable(r)) DIRTY.delete(r.orderId); }); persist();
       if (SET.url && toSend.length) pushMany(toSend);
@@ -2205,7 +2221,7 @@ async function saveForm(ev){
     nama: $('#f_nama').value.trim(), hp: $('#f_hp').value.trim(), alamat: $('#f_alamat').value.trim(),
     sumber: $('#f_sumber').value.trim(), status: $('#f_status').value, catatan: $('#f_catatan').value.trim(),
     metodeVerif: metode, waktuVerif: waktu,
-    produk: $('#f_produk').value.trim(), ip: old ? old.ip : '', jam: old ? old.jam : '', catatanAsli: old ? old.catatanAsli : '',
+    produk: canonProd($('#f_produk').value.trim()) || (PROD && PROD !== NOPROD ? PROD : ''), ip: old ? old.ip : '', jam: old ? old.jam : '', catatanAsli: old ? old.catatanAsli : '',
     updatedAt: new Date().toISOString()
   });
   if (old && old.status === 'real' && old.rcDirect && r.status !== 'real'){ r.rcStatus = ''; r.rcNominal = ''; r.rcClosingAt = ''; r.rcCatatan = ''; r.rcDirect = false; }
