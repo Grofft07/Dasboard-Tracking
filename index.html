@@ -505,6 +505,9 @@ body{background:var(--bg)}
 .pill:hover,.flag:hover{transform:none}
 .periodbar{border-left:3px solid var(--run)}
 @media (max-width:640px){ .kpi.hero .val{font-size:28px} }
+/* ===== V22: lebar halaman mengikuti layar (zoom browser 75% / layar lebar) ===== */
+.wrap{max-width:none}
+@media (min-width:1100px){ .wrap{padding-left:clamp(20px,2.2vw,56px);padding-right:clamp(20px,2.2vw,56px)} }
 </style>
 </head>
 <body>
