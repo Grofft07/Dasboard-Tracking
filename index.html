@@ -508,7 +508,55 @@ body{background:var(--bg)}
 /* ===== V22: lebar halaman mengikuti layar (zoom browser 75% / layar lebar) ===== */
 .wrap{max-width:none}
 @media (min-width:1100px){ .wrap{padding-left:clamp(20px,2.2vw,56px);padding-right:clamp(20px,2.2vw,56px)} }
+
+/* ===== V25: gaya ala Dashboard Omzet All (sidebar, palet hijau, grafik, tabel urut) ===== */
+:root{--bg:#F4F8F6;--panel:#fff;--ink:#12161C;--muted:#5B6577;--line:#DCE7E1;--soft:#EEF6F1;--brand:#16A34A;--run:#2B6FE0;--runbg:#E3EDFC;--ok:#16A34A;--okbg:#DDF3E5;--warn:#B8860B;--warnbg:#FBF0CC;--bad:#D7384F;--badbg:#FBE3E7;--radius:12px}
+[data-theme="dark"]{--bg:#0F1115;--panel:#171B22;--ink:#E7E9EE;--muted:#8B93A7;--line:#2A3040;--soft:#1D222B;--brand:#22C55E;--run:#6C9BF2;--runbg:#1B2A4A;--ok:#22C55E;--okbg:#10301D;--warn:#F5C518;--warnbg:#3A3210;--bad:#FF6B81;--badbg:#3D1C24}
+.top{background:linear-gradient(120deg,#0e3b26,#15803d)!important}
+nav.tabs[hidden]{display:none!important}
+.filters{position:sticky;top:0;z-index:25;background:var(--bg);padding:10px 0;margin-top:-6px}
+th[data-sort]{cursor:pointer;user-select:none}th[data-sort]:hover{color:var(--brand)}
+th.asc::after{content:" \25B2";font-size:9px}th.desc::after{content:" \25BC";font-size:9px}
+.chrow{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+.chbox{position:relative;height:250px}.chrow h2{margin:0 0 10px;font-size:15px}
+@media(max-width:980px){.chrow{grid-template-columns:1fr}}
+@media(min-width:861px){
+  nav.tabs{position:fixed;left:0;top:0;bottom:0;width:220px;margin:0;z-index:40;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:20px 14px;border-radius:0;border-width:0 1px 0 0;box-shadow:none}
+  nav.tabs::before{content:"\25CF  Audit Lead";font-weight:800;font-size:15px;color:var(--brand);padding:4px 8px 18px}
+  nav.tabs .tab{width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px}
+  .wrap:has(nav.tabs:not([hidden])){padding-left:244px}
+}
+
+/* ===== V26: audit cepat (1-klik, keyboard, chip filter) ===== */
+.qa{display:flex;gap:4px;margin-bottom:5px}.qa button{flex:1;border:1px solid var(--line);background:var(--soft);color:var(--muted);border-radius:7px;padding:4px 6px;font-size:12px;font-weight:700;cursor:pointer;min-height:0;white-space:nowrap}
+.qa button:hover{color:var(--ink);border-color:var(--brand)}.qa button.on[data-q=real]{background:var(--okbg);color:var(--ok);border-color:var(--ok)}.qa button.on[data-q=fake]{background:var(--badbg);color:var(--bad);border-color:var(--bad)}.qa button.on[data-q=cek]{background:var(--warnbg);color:var(--warn);border-color:var(--warn)}
+tr[data-id]{cursor:pointer}tr[data-id]:hover td{background:var(--soft)}tr.cur td{background:var(--runbg)!important}tr.cur td:first-child{box-shadow:inset 3px 0 0 var(--brand)}
+a.wa{margin-left:6px;font-size:11px;font-weight:700;color:var(--ok);text-decoration:none;border:1px solid var(--ok);border-radius:6px;padding:1px 5px}
+.fchips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.fchips:empty{display:none}
+.fchip{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--brand);border-radius:999px;padding:3px 6px 3px 12px;font-size:12.5px}.fchip button{border:0;background:var(--soft);border-radius:50%;width:20px;height:20px;cursor:pointer;min-height:0;padding:0;line-height:1}
+.kbdhint{font-size:12px;color:var(--muted);margin:0 0 10px}.kbdhint kbd{font:inherit;font-size:11px;border:1px solid var(--line);border-radius:5px;padding:0 5px;background:var(--soft)}
+@media(max-width:860px){.kbdhint{display:none}}
+
+/* V26 perbaikan lebar kolom tabel lead */
+@media(min-width:901px){
+ table.lead{min-width:1240px}
+ table.lead th:nth-child(1),table.lead td:nth-child(1){width:92px;white-space:nowrap}
+ table.lead th:nth-child(2),table.lead td:nth-child(2){width:130px}
+ table.lead th:nth-child(3),table.lead td:nth-child(3){width:168px;white-space:nowrap;overflow:visible}
+ table.lead th:nth-child(4),table.lead td:nth-child(4){width:auto}
+ table.lead th:nth-child(5),table.lead td:nth-child(5){width:112px}
+ table.lead th:nth-child(6),table.lead td:nth-child(6){width:76px}
+ table.lead th:nth-child(7),table.lead td:nth-child(7){width:100px}
+ table.lead th:nth-child(8),table.lead td:nth-child(8){width:92px}
+ table.lead th:nth-child(9),table.lead td:nth-child(9){width:188px}
+ table.lead th:nth-child(10),table.lead td:nth-child(10){width:120px}
+ table.lead th:nth-child(11),table.lead td:nth-child(11){width:128px}
+}
+a.wa{display:inline-block;vertical-align:middle}
+table.lead td select{width:100%;min-width:0;text-overflow:ellipsis}
+.rowact{display:flex;gap:6px;flex-wrap:nowrap}.rowact .btn{padding-left:10px;padding-right:10px}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -572,11 +620,18 @@ body{background:var(--bg)}
   <div class="field grow"><label for="fQ">Cari</label><input type="search" id="fQ" placeholder="Nama, HP, alamat"></div>
 </section>
 
+<div class="fchips" id="fchips"></div>
+<p class="kbdhint"><kbd>↑</kbd><kbd>↓</kbd> pilih lead · <kbd>R</kbd> Real · <kbd>T</kbd> Tidak real · <kbd>C</kbd> Perlu dicek · <kbd>Enter</kbd> detail · <kbd>/</kbd> cari · <kbd>←</kbd><kbd>→</kbd> ganti hari · <kbd>1</kbd>–<kbd>4</kbd> pindah tab. Klik baris untuk membuka detail.</p>
 <div class="notice" id="pendBox" hidden></div>
 
 <section class="card panel prog" id="segAudit" aria-label="Progres audit"></section>
 
 <section class="kpis" id="kpis" aria-label="Ringkasan"></section>
+
+<section class="chrow" id="chRow">
+  <div class="card"><h2>Tren lead 14 hari <span class="muted" style="font-weight:400;font-size:12px">(klik batang untuk pindah tanggal)</span></h2><div class="chbox"><canvas id="chTren"></canvas></div></div>
+  <div class="card"><h2>Status lead pada tanggal ini</h2><div class="chbox"><canvas id="chStat"></canvas></div></div>
+</section>
 
 <section class="card panel">
   <div class="head"><h2>Rekap per CS</h2><span class="muted" id="csNote"></span></div>
@@ -590,7 +645,7 @@ body{background:var(--bg)}
   <div class="head"><h2>Daftar lead</h2><span class="muted" id="detNote"></span></div>
   <div class="tw"><table class="lead">
     <thead><tr>
-      <th>Tanggal</th><th>Nama</th><th>HP</th><th>Alamat</th><th>CS</th><th>Sumber</th><th>Indikasi</th><th>Verifikasi</th><th>Status</th><th>Closing</th><th></th>
+      <th data-sort="tanggal">Tanggal</th><th data-sort="nama">Nama</th><th data-sort="hp">HP</th><th data-sort="alamat">Alamat</th><th data-sort="cs">CS</th><th data-sort="sumber">Sumber</th><th>Indikasi</th><th>Verifikasi</th><th>Status</th><th>Closing</th><th></th>
     </tr></thead>
     <tbody id="tbody"></tbody>
   </table></div>
@@ -1104,6 +1159,10 @@ function parseCreatedAt(s){
   if (m) return {date: m[1]+'-'+m[2]+'-'+m[3], jam: m[4] ? m[4]+':'+m[5] : ''};
   m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
   if (m) return {date: m[3]+'-'+pad(m[2])+'-'+pad(m[1]), jam: m[4] ? pad(m[4])+':'+m[5] : ''};
+  /* format form.id: \"Nov 12, 2026 23:21:21\" */
+  m = s.match(/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  var mi = m ? ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[1].toLowerCase()) : -1;
+  if (mi >= 0) return {date: m[3]+'-'+pad(mi+1)+'-'+pad(m[2]), jam: m[4] ? pad(m[4])+':'+m[5] : ''};
   return {date:'', jam:''};
 }
 function toLead(o){
@@ -1390,7 +1449,7 @@ function renderTable(rows){
     if (r.status === 'real') return r.rcStatus === 'closing' && r.rcDirect; /* closing langsung (CS biasa) tetap di Audit Lead; sisanya (CS DL) di tab Closing Lead */
     return true;
   });
-  var sorted = rows.slice().sort(function(a,b){ return (b.tanggal+b.jam).localeCompare(a.tanggal+a.jam); });
+  var sorted = rows.slice().sort(function(a,b){ if (SORT.k) return String(a[SORT.k]||'').localeCompare(String(b[SORT.k]||''),'id',{numeric:true}) * SORT.d; return (b.tanggal+b.jam).localeCompare(a.tanggal+a.jam); });
   $('#detNote').textContent = rows.length + ' lead';
   if (!sorted.length){ $('#tbody').innerHTML = '<tr><td colspan="11">' + empty(ROWS.length ? 'Tidak ada lead yang perlu dilihat pada tanggal ini. Lead Tidak real ada di tab Follow-up Lead, lead Real (kecuali yang closing langsung di sini) ada di tab Closing Lead.' : 'Belum ada data. Klik Upload CSV untuk mulai.') + '</td></tr>'; return; }
   var idx = buildDupIndex();
@@ -1398,16 +1457,16 @@ function renderTable(rows){
   $('#tbody').innerHTML = shown.map(function(r){
     var fl = flagsFor(r, idx);
     var flHtml = fl.length ? '<div class="flags">' + fl.map(function(f){ return '<span class="flag' + (f.bad?' bad':'') + '">' + esc(f.t) + '</span>'; }).join('') + '</div>' : '<span class="muted">–</span>';
-    return '<tr data-st="' + (r.status || 'blank') + '">' +
+    return '<tr data-id="' + esc(r.orderId) + '" data-st="' + (r.status || 'blank') + '">' +
       '<td>' + esc(r.tanggal||'–') + '</td>' +
       '<td><strong>' + esc(r.nama||'–') + '</strong></td>' +
-      '<td>' + esc(r.hp||'–') + '</td>' +
+      '<td>' + esc(r.hp||'–') + (normHp(r.hp) ? '<a class="wa" title="Chat WhatsApp" target="_blank" rel="noopener" href="https://wa.me/62' + normHp(r.hp).slice(1) + '">WA</a>' : '') + '</td>' +
       '<td class="addr" title="' + esc(r.alamat) + '">' + esc(r.alamat||'–') + '</td>' +
       '<td>' + esc(r.cs||'–') + '</td>' +
       '<td>' + esc(r.sumber||'–') + '</td>' +
       '<td>' + flHtml + '</td>' +
       '<td>' + verifCell(r) + '</td>' +
-      '<td><select class="st-' + (r.status || 'blank') + '" data-act="status" data-id="' + esc(r.orderId) + '" aria-label="Status lead">' +
+      '<td><div class="qa">' + [['real','✓ Real'],['fake','✕ Tidak'],['cek','? Cek']].map(function(q){ return '<button type="button" data-q="' + q[0] + '" data-id="' + esc(r.orderId) + '"' + (r.status === q[0] ? ' class="on"' : '') + '>' + q[1] + '</button>'; }).join('') + '</div><select class="st-' + (r.status || 'blank') + '" data-act="status" data-id="' + esc(r.orderId) + '" aria-label="Status lead">' +
         Object.keys(STOPTLABEL).map(function(k){
           var sel = (r.status === 'real' && r.rcStatus === 'closing') ? 'real_closing' : r.status;
           return '<option value="' + k + '"' + (sel===k?' selected':'') + '>' + STOPTLABEL[k] + '</option>';
@@ -1470,6 +1529,74 @@ function renderAll(){
   renderHome(); renderKPI(base); renderCS(base); renderTable(rows); renderPending(); renderDC(); renderRC(); renderAN(); redrawPickers(); waSync();
   $('#fDay').value = F.day; $('#fStatus').value = F.status;
 }
+
+
+/* ---------- V25: urut kolom + grafik ---------- */
+var SORT = {k:'', d:1}, CH = {};
+document.addEventListener('click', function(ev){
+  var th = ev.target.closest('th[data-sort]'); if (!th) return;
+  var k = th.dataset.sort; SORT = SORT.k === k ? (SORT.d === 1 ? {k:k, d:-1} : {k:'', d:1}) : {k:k, d:1};
+  th.parentNode.querySelectorAll('th').forEach(function(h){ h.classList.remove('asc','desc'); });
+  if (SORT.k) th.classList.add(SORT.d === 1 ? 'asc' : 'desc');
+  PG.au = 1; renderAll();
+});
+function drawChart(id, cfg){ var el = document.getElementById(id); if (!el || !window.Chart) return; if (CH[id]) CH[id].destroy(); CH[id] = new Chart(el, cfg); }
+function renderCharts(){
+  if (!window.Chart || PROD === null || TAB !== 'audit') return;
+  var cs = getComputedStyle(document.documentElement), v = function(n){ return cs.getPropertyValue(n).trim(); };
+  var tx = v('--muted'), gl = v('--line'), P = PR(), days = [], d0 = new Date(F.day + 'T00:00:00');
+  for (var i = 13; i >= 0; i--){ var x = new Date(d0); x.setDate(d0.getDate() - i); days.push(ymd(x)); }
+  var ST = [['real','Real','--ok'],['fake','Tidak real','--bad'],['cek','Perlu dicek','--warn'],['','Belum diperiksa','--muted']];
+  var inCs = function(r){ return !F.cs || r.cs === F.cs; };
+  drawChart('chTren', {type:'bar', data:{labels:days.map(dm), datasets:ST.map(function(s){ return {label:s[1], backgroundColor:v(s[2]), stack:'a', data:days.map(function(day){ return P.filter(function(r){ return r.tanggal === day && inCs(r) && (r.status||'') === s[0]; }).length; })}; })},
+    options:{maintainAspectRatio:false, animation:{duration:250}, scales:{x:{stacked:true, ticks:{color:tx}, grid:{display:false}}, y:{stacked:true, ticks:{color:tx, precision:0}, grid:{color:gl}}}, plugins:{legend:{labels:{color:tx, boxWidth:12}}},
+    onClick:function(e, el){ if (el.length){ F.day = days[el[0].index]; renderAll(); } }}});
+  var day = P.filter(function(r){ return r.tanggal === F.day && inCs(r); });
+  drawChart('chStat', {type:'doughnut', data:{labels:ST.map(function(s){ return s[1]; }), datasets:[{borderColor:v('--panel'), backgroundColor:ST.map(function(s){ return v(s[2]); }), data:ST.map(function(s){ return day.filter(function(r){ return (r.status||'') === s[0]; }).length; })}]},
+    options:{maintainAspectRatio:false, animation:{duration:250}, cutout:'62%', plugins:{legend:{position:'right', labels:{color:tx, boxWidth:12}}}}});
+}
+
+/* ---------- V26: aksi cepat, keyboard, chip filter ---------- */
+var CUR = -1;
+function setStatusQ(id, val){ var sel = document.querySelector('#tbody select[data-act="status"][data-id="' + id + '"]'); if (!sel) return; sel.value = val; sel.dispatchEvent(new Event('change', {bubbles:true})); }
+function applyCur(){
+  var rs = document.querySelectorAll('#tbody tr[data-id]'); rs.forEach(function(r){ r.classList.remove('cur'); });
+  if (CUR < 0 || !rs.length) return; CUR = Math.min(CUR, rs.length - 1); rs[CUR].classList.add('cur'); rs[CUR].scrollIntoView({block:'nearest'});
+}
+function renderChips(){
+  var el = $('#fchips'); if (!el) return; var c = [];
+  if (F.cs) c.push(['cs', 'CS: ' + F.cs]);
+  if (F.status !== 'ANY') c.push(['status', 'Status: ' + (F.status === 'flag' ? 'Ada indikasi' : STOPTLABEL[F.status] || F.status)]);
+  if (F.q.trim()) c.push(['q', 'Cari: ' + F.q.trim()]);
+  el.innerHTML = c.map(function(x){ return '<span class="fchip">' + esc(x[1]) + '<button type="button" data-clr="' + x[0] + '" aria-label="Hapus filter">×</button></span>'; }).join('') + (c.length > 1 ? '<button type="button" class="btn sm" data-clr="all">Reset filter</button>' : '');
+}
+document.addEventListener('click', function(ev){
+  var q = ev.target.closest('.qa button[data-q]');
+  if (q){ var r = ROWS.find(function(x){ return x.orderId === q.dataset.id; }); setStatusQ(q.dataset.id, r && r.status === q.dataset.q ? '' : q.dataset.q); return; }
+  var x = ev.target.closest('#fchips [data-clr]');
+  if (x){ var k = x.dataset.clr; if (k === 'cs' || k === 'all') F.cs = ''; if (k === 'status' || k === 'all') F.status = 'ANY'; if (k === 'q' || k === 'all'){ F.q = ''; $('#fQ').value = ''; } renderAll(); return; }
+  var tr = ev.target.closest('#tbody tr[data-id]');
+  if (tr && !ev.target.closest('button,select,a,input')){ CUR = Array.prototype.indexOf.call($('#tbody').querySelectorAll('tr[data-id]'), tr); applyCur(); openForm(tr.dataset.id); }
+});
+document.addEventListener('keydown', function(ev){
+  var t = ev.target; if (/INPUT|SELECT|TEXTAREA/.test(t.tagName) || t.isContentEditable || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (document.querySelector('dialog[open]')) return;
+  var k = ev.key.toLowerCase(), tabs = {'1':'#tabAudit','2':'#tabRC','3':'#tabDC','4':'#tabAN'};
+  if (tabs[k] && PROD !== null){ $(tabs[k]).click(); return; }
+  if (TAB !== 'audit' || PROD === null) return;
+  var rs = document.querySelectorAll('#tbody tr[data-id]');
+  if (k === 'arrowdown' || k === 'j'){ ev.preventDefault(); CUR = Math.min(CUR + 1, rs.length - 1); applyCur(); }
+  else if (k === 'arrowup' || k === 'k'){ ev.preventDefault(); CUR = Math.max(CUR - 1, 0); applyCur(); }
+  else if (k === '/'){ ev.preventDefault(); $('#fQ').focus(); }
+  else if (k === 'arrowleft'){ $('#dayPrev').click(); } else if (k === 'arrowright'){ $('#dayNext').click(); }
+  else if (CUR >= 0 && rs[CUR]){
+    var id = rs[CUR].dataset.id;
+    if (k === 'r') setStatusQ(id, 'real'); else if (k === 't') setStatusQ(id, 'fake'); else if (k === 'c') setStatusQ(id, 'cek'); else if (k === 'enter') openForm(id);
+  }
+});
+(function(){ var _r2 = renderAll; renderAll = function(){ _r2.apply(this, arguments); try{ renderChips(); applyCur(); }catch(e){} }; })();
+(function(){ var _ra = renderAll; renderAll = function(){ _ra.apply(this, arguments); try{ renderCharts(); }catch(e){} }; })();
+new MutationObserver(function(){ try{ renderCharts(); }catch(e){} }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
 
 /* ---------- follow-up lead ---------- */
 var TAB = 'audit';
@@ -2290,7 +2417,7 @@ function bind(){
   $('#pendBox').addEventListener('click', function(ev){ var b = ev.target.closest('button[data-day]'); if (b){ F.day = b.dataset.day; renderAll(); } });
   $('#fCs').addEventListener('change', function(e){ F.cs = e.target.value; renderAll(); });
   $('#fStatus').addEventListener('change', function(e){ F.status = e.target.value; renderAll(); });
-  $('#fQ').addEventListener('input', function(e){ F.q = e.target.value; renderAll(); });
+  var _qt; $('#fQ').addEventListener('input', function(e){ var v = e.target.value; clearTimeout(_qt); _qt = setTimeout(function(){ F.q = v; PG.au = 1; renderAll(); }, 150); });
 
   $('#btnUpload').addEventListener('click', function(){ $('#csvInput').click(); });
   $('#csvInput').addEventListener('change', function(e){ if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ''; });
